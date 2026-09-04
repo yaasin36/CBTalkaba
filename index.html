@@ -1692,22 +1692,46 @@
                     payload = { id: newId, nama: document.getElementById('caNama').value, username: document.getElementById('caUser').value, password: passVal, role: document.getElementById('caRole').value, mapel: document.getElementById('caRole').value === 'superadmin' ? '' : document.getElementById('caMapel').value };
                     dbAdmin.push(payload);
                 }
-                fetchGAS('simpanAdmin', payload); document.getElementById('modal-crud').classList.add('hidden'); renderTableAdmin(); showToast("Data Admin Disimpan", "success");
+                fetchGAS('simpanAdmin', payload);
+                document.getElementById('modal-crud').classList.add('hidden'); renderTableAdmin(); showToast("Data Admin Disimpan", "success");
             };
             document.getElementById('modal-crud').classList.remove('hidden');
         }
-        function toggleMapelAdmin() { const r = document.getElementById('caRole').value; const m = document.getElementById('caMapel'); if(r === 'superadmin') { m.disabled = true; m.value = ''; m.classList.add('bg-slate-100'); } else { m.disabled = false; m.classList.remove('bg-slate-100'); } }
 
-        // --- ADMIN: ANGGOTA (SUPERADMIN ONLY) ---
+        function toggleMapelAdmin() {
+            const role = document.getElementById('caRole');
+            const mapel = document.getElementById('caMapel');
+            if(role && mapel) {
+                if(role.value === 'superadmin') {
+                    mapel.value = '';
+                    mapel.disabled = true;
+                    mapel.classList.add('bg-slate-100', 'text-slate-400');
+                } else {
+                    mapel.disabled = false;
+                    mapel.classList.remove('bg-slate-100', 'text-slate-400');
+                }
+            }
+        }
+
+        // --- ADMIN: ANGGOTA ---
         function renderTableAnggota() {
             const tbody = document.getElementById('tbody-anggota'); tbody.innerHTML = '';
             if(dbSiswa.length === 0) return tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500">Tidak ada data peserta</td></tr>';
+            
+            // Ubah Header Tabel
+            const thead = document.querySelector('#tab-anggota thead tr');
+            if (thead) thead.innerHTML = '<th class="p-4">NIS / Username</th><th class="p-4">Nama Lengkap</th><th class="p-4 text-center">Kelas</th><th class="p-4 text-center">Riwayat Ujian</th><th class="p-4 text-center">Aksi</th>';
+
             dbSiswa.forEach(s => {
+                const totalSelesai = dbHasil.filter(h => String(h.siswaId) === String(s.id)).length;
+                const stat = `<span class="bg-indigo-50 border border-indigo-100 text-indigo-600 px-3 py-1.5 rounded-xl text-xs font-bold"><i class="fas fa-file-invoice mr-1.5"></i> ${totalSelesai} Ujian</span>`;
+                
                 tbody.innerHTML += `
-                <tr class="hover:bg-slate-50 border-b border-slate-50 transition">
+                <tr class="hover:bg-slate-50 border-b border-slate-100 transition">
                     <td class="p-4 font-mono font-black text-slate-500 tracking-wider">${s.username}</td>
                     <td class="p-4 font-bold text-slate-700">${s.nama}</td>
-                    <td class="p-4 text-center"><span class="bg-indigo-50 text-indigo-600 border border-indigo-100 px-3 py-1 rounded-lg text-xs font-bold">${s.kelas}</span></td>
+                    <td class="p-4 text-center"><span class="bg-emerald-50 text-emerald-600 border border-emerald-100 px-3 py-1.5 rounded-lg text-xs font-bold">${s.kelas}</span></td>
+                    <td class="p-4 text-center">${stat}</td>
                     <td class="p-4 text-center">
                         <button onclick="bukaModalSiswa('${s.id}')" class="text-indigo-600 bg-indigo-50 hover:bg-indigo-600 hover:text-white w-8 h-8 rounded-lg inline-flex items-center justify-center transition border border-indigo-100 shadow-sm mr-1"><i class="fas fa-edit text-xs"></i></button>
                         <button onclick="bukaAdminConfirm('Hapus Siswa?', 'Data siswa ini akan dihapus permanen.', () => { dbSiswa = dbSiswa.filter(x=>x.id != '${s.id}'); fetchGAS('hapusSiswa', {id: '${s.id}'}); renderTableAnggota(); })" class="text-red-500 bg-red-50 hover:bg-red-500 hover:text-white w-8 h-8 rounded-lg inline-flex items-center justify-center transition border border-red-100 shadow-sm"><i class="fas fa-trash text-xs"></i></button>
