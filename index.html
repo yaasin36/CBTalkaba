@@ -142,16 +142,19 @@
     <div id="view-student-dashboard" class="view-section hidden min-h-screen bg-[#f8fafc] w-full flex flex-col">
         <!-- Header Siswa -->
         <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
-            <div class="max-w-7xl mx-auto px-4 md:px-8 py-4 flex justify-between items-center">
-                <div class="flex items-center gap-4">
+            <div class="max-w-7xl mx-auto px-4 md:px-8 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div class="flex items-center gap-4 w-full md:w-auto">
                     <img src="img/alazhar.png" onerror="this.style.display='none'" class="h-10 w-auto object-contain hidden md:block" alt="Logo">
                     <div class="w-12 h-12 bg-indigo-50 border border-indigo-100 rounded-full flex items-center justify-center text-indigo-600 text-xl shadow-inner md:hidden"><i class="fas fa-user-graduate"></i></div>
-                    <div>
+                    <div class="flex-grow">
                         <h1 class="font-black text-slate-800 text-lg md:text-xl tracking-tight" id="sd-nama">Nama Siswa</h1>
                         <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest"><i class="fas fa-layer-group text-indigo-400 mr-1"></i> Kelas: <span id="sd-kelas" class="text-indigo-600">XII</span></p>
                     </div>
                 </div>
-                <button onclick="logoutUnified()" class="text-red-500 bg-red-50 hover:bg-red-500 hover:text-white px-4 py-2 rounded-xl text-sm font-bold transition flex items-center gap-2 border border-red-100 shadow-sm"><i class="fas fa-sign-out-alt"></i> <span class="hidden md:inline">Keluar</span></button>
+                <div class="flex items-center gap-2 w-full md:w-auto">
+                    <button onclick="bukaModalGantiPassword()" class="flex-1 md:flex-none text-slate-600 bg-slate-50 hover:bg-slate-100 px-4 py-2.5 rounded-xl text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 border border-slate-200 shadow-sm"><i class="fas fa-key"></i> Ganti Sandi</button>
+                    <button onclick="logoutUnified()" class="flex-1 md:flex-none text-red-600 bg-red-50 hover:bg-red-500 hover:text-white px-4 py-2.5 rounded-xl text-xs md:text-sm font-bold transition flex items-center justify-center gap-2 border border-red-100 shadow-sm"><i class="fas fa-sign-out-alt"></i> Keluar</button>
+                </div>
             </div>
         </header>
 
@@ -324,10 +327,11 @@
     <div id="view-admin-dashboard" class="view-section hidden h-screen w-full flex bg-[#eef2fb]">
         <!-- Sidebar Admin -->
         <aside class="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
-            <div class="p-8 border-b border-slate-100 text-center relative">
+            <div class="p-8 border-b border-slate-100 text-center relative flex flex-col items-center">
                 <img src="img/alazhar.png" onerror="this.style.display='none'" class="h-14 w-auto object-contain mx-auto mb-3" alt="Logo">
                 <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest" id="sidebar-role-label">CBTPro Admin</p>
                 <p class="text-sm font-black text-slate-700 mt-1" id="sidebar-user-name">Nama Pengguna</p>
+                <button onclick="bukaModalGantiPassword()" class="mt-4 text-xs font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 hover:text-indigo-600 border border-slate-200 px-4 py-2 rounded-xl transition inline-flex items-center justify-center gap-2 shadow-sm w-full"><i class="fas fa-key"></i> Ganti Password</button>
             </div>
             <nav class="flex-grow p-4 space-y-2 mt-2 overflow-y-auto no-scrollbar">
                 <button onclick="switchAdminTab('tab-dashboard')" id="btn-tab-dashboard" class="admin-tab-btn w-full flex items-center gap-3 px-5 py-3.5 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-bold transition-all"><i class="fas fa-chart-pie w-5 text-center"></i> Dashboard</button>
@@ -355,10 +359,18 @@
 
         <!-- Area Konten Utama Admin -->
         <main class="flex-1 flex flex-col h-screen overflow-hidden relative">
-            <div class="md:hidden bg-white text-[#0f172a] p-4 flex justify-between items-center border-b border-slate-200 z-30 shadow-sm">
-                <img src="img/alazhar.png" onerror="this.style.display='none'" class="h-8 w-auto object-contain" alt="Logo">
-                <span class="font-black text-sm uppercase tracking-widest" id="mobile-role-label">Admin</span>
-                <button onclick="logoutUnified()" class="text-red-500 bg-red-50 border border-red-100 w-8 h-8 rounded-lg flex items-center justify-center"><i class="fas fa-sign-out-alt text-xs"></i></button>
+            <div class="md:hidden bg-white text-[#0f172a] p-4 flex flex-col gap-3 border-b border-slate-200 z-30 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-indigo-50 border border-indigo-100 rounded-full flex items-center justify-center text-indigo-600 text-lg shadow-inner"><i class="fas fa-user-tie"></i></div>
+                    <div>
+                        <h2 class="font-black text-sm text-slate-800 leading-tight" id="mobile-user-name">Nama Pengguna</h2>
+                        <p class="text-[10px] font-bold text-indigo-600 uppercase tracking-widest" id="mobile-role-label">Guru Mapel</p>
+                    </div>
+                </div>
+                <div class="flex gap-2 w-full mt-1">
+                    <button onclick="bukaModalGantiPassword()" class="flex-1 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-bold py-2.5 rounded-lg shadow-sm flex items-center justify-center gap-2 transition"><i class="fas fa-key"></i> Ganti Sandi</button>
+                    <button onclick="logoutUnified()" class="flex-1 bg-red-50 border border-red-100 hover:bg-red-500 hover:text-white text-red-600 text-xs font-bold py-2.5 rounded-lg shadow-sm flex items-center justify-center gap-2 transition"><i class="fas fa-sign-out-alt"></i> Keluar</button>
+                </div>
             </div>
             
             <!-- Mobile Menu -->
@@ -762,6 +774,36 @@
         </div>
     </div>
 
+    <!-- MODAL GANTI PASSWORD -->
+    <div id="modal-ganti-password" class="fixed inset-0 bg-[#0f172a]/60 backdrop-blur-sm z-[9999] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm modal-enter overflow-hidden flex flex-col border border-white/50">
+            <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white relative z-10">
+                <h3 class="font-black text-lg text-slate-800 tracking-tight flex items-center gap-2"><i class="fas fa-key text-indigo-500"></i> Ganti Password</h3>
+                <button type="button" onclick="tutupModalGantiPassword()" class="w-8 h-8 bg-slate-100 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-full flex items-center justify-center transition"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-6 bg-slate-50">
+                <form id="form-ganti-password" onsubmit="simpanPasswordBaru(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Password Lama</label>
+                        <input type="password" id="gp-lama" required class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm bg-white outline-none focus:border-indigo-500 shadow-sm" placeholder="Ketik password saat ini">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Password Baru</label>
+                        <input type="password" id="gp-baru" required class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm bg-white outline-none focus:border-indigo-500 shadow-sm" placeholder="Ketik password baru">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Konfirmasi Password Baru</label>
+                        <input type="password" id="gp-konfirm" required class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm bg-white outline-none focus:border-indigo-500 shadow-sm" placeholder="Ketik ulang password baru">
+                    </div>
+                </form>
+            </div>
+            <div class="px-6 py-4 bg-white border-t border-slate-100 flex gap-3">
+                <button type="button" onclick="tutupModalGantiPassword()" class="flex-1 bg-white border border-slate-200 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-50 transition text-sm">Batal</button>
+                <button type="submit" form="form-ganti-password" class="flex-1 bg-[#0f172a] text-white font-bold py-3 rounded-xl shadow-md hover:bg-[#1e293b] active:scale-95 transition text-sm flex items-center justify-center gap-2"><i class="fas fa-save"></i> Perbarui</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL ALERT GLOBAL (Login & Logout) -->
     <div id="modal-alert" class="fixed inset-0 bg-[#0f172a]/70 backdrop-blur-md z-[9999] hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-[2.5rem] shadow-2xl p-8 pt-12 max-w-sm w-full mx-auto modal-enter border border-white/50 text-center relative mt-8">
@@ -815,12 +857,27 @@
             fetchGAS("catatLog", { aktivitas: aktivitas, user: userStr, keterangan: keterangan }).catch(e => console.log(e));
         }
 
+        // FUNGSI TARIK DATA SERVER (Dipanggil saat klik login atau auto-login)
+        window.tarikDataServer = async function() {
+            if(!GAS_URL) return;
+            try {
+                const res = await fetchGAS("sinkronAwal");
+                if(res.status === "success" && res.data) {
+                    dbAdmin = []; const aData = res.data.admin; for(let i=1; i<aData.length; i++) dbAdmin.push({ id: aData[i][0], nama: aData[i][1], role: aData[i][2], mapel: aData[i][3], username: aData[i][4], password: String(aData[i][5]) });
+                    dbSiswa = []; const siData = res.data.siswa; for(let i=1; i<siData.length; i++) dbSiswa.push({ id: siData[i][0], nama: siData[i][1], username: siData[i][2], password: String(siData[i][3]), kelas: siData[i][4], statusUjian: siData[i][5], cheatCount: siData[i][6], isBlocked: siData[i][7] });
+                    dbPaket = []; const pData = res.data.paket; for(let i=1; i<pData.length; i++) dbPaket.push({ id: pData[i][0], nama: pData[i][1], mapel: pData[i][2], durasi: pData[i][3], waktuMulai: pData[i][4], batasWaktu: pData[i][5], targetKelas: (pData[i][6]?JSON.parse(pData[i][6]):[]), aktif: pData[i][7] });
+                    dbSoal = []; const sData = res.data.soal; for(let i=1; i<sData.length; i++) dbSoal.push(JSON.parse(sData[i][5]));
+                    dbToken = []; const tData = res.data.token; for(let i=1; i<tData.length; i++) dbToken.push({ token: tData[i][0], paketId: tData[i][1], jenis: tData[i][2], isUsed: tData[i][3], usedBy: tData[i][4] });
+                    dbHasil = []; const hData = res.data.hasil; for(let i=1; i<hData.length; i++) dbHasil.push({ wkt: hData[i][0], id: hData[i][1], siswaId: hData[i][2], nama: hData[i][3], kelas: hData[i][4], paketId: hData[i][5], mapel: hData[i][6], skor: hData[i][7], durasi: hData[i][8], detail: JSON.parse(hData[i][9]||'{}'), koreksiEsai: JSON.parse(hData[i][10]||'{}') });
+                }
+            } catch(e) { console.error("Gagal fetch GAS:", e); }
+        };
+
         // FUNGSI INIT ONLOAD
         window.onload = async () => {
             // MOCK DATA: Disuntikkan sebagai fallback jika GAS belum sinkron
             dbAdmin = [
-                {id: 1, nama: "Ketua Panitia", username: "superadmin", password: "123", role: "superadmin", mapel: ""},
-                {id: 2, nama: "Bapak Guru", username: "guru", password: "123", role: "admin", mapel: "Informatika"}
+                {id: 1, nama: "Ketua Panitia", username: "superadmin", password: "123", role: "superadmin", mapel: ""}
             ];
             dbSiswa = [
                 {id: "S01", nama: "Siswa Tester 1", username: "siswa1", password: "123", kelas: "XII-A", statusUjian: false, cheatCount: 0, isBlocked: false}
@@ -829,28 +886,16 @@
                 {id: "P01", nama: "UAS Informatika", mapel: "Informatika", durasi: 90, waktuMulai: toIsoStringLocal(new Date(Date.now() - 3600000)), batasWaktu: toIsoStringLocal(new Date(Date.now() + 7200000)), targetKelas: ["XII-A", "XII-B"], aktif: true}
             ];
             dbToken = [{token: "ABCDEF", paketId: "P01", jenis: "Reguler", isUsed: false}];
-            
-            // JIKA ADA GAS_URL, TARIK DATA REAL DARI SPREADSHEET
-            if(GAS_URL) {
-                document.getElementById('view-loading').classList.remove('hidden');
-                document.getElementById('loading-text').innerText = "Sinkronisasi Server...";
-                try {
-                    const res = await fetchGAS("sinkronAwal");
-                    if(res.status === "success" && res.data) {
-                        dbAdmin = []; const aData = res.data.admin; for(let i=1; i<aData.length; i++) dbAdmin.push({ id: aData[i][0], nama: aData[i][1], role: aData[i][2], mapel: aData[i][3], username: aData[i][4], password: String(aData[i][5]) });
-                        dbSiswa = []; const siData = res.data.siswa; for(let i=1; i<siData.length; i++) dbSiswa.push({ id: siData[i][0], nama: siData[i][1], username: siData[i][2], password: String(siData[i][3]), kelas: siData[i][4], statusUjian: siData[i][5], cheatCount: siData[i][6], isBlocked: siData[i][7] });
-                        dbPaket = []; const pData = res.data.paket; for(let i=1; i<pData.length; i++) dbPaket.push({ id: pData[i][0], nama: pData[i][1], mapel: pData[i][2], durasi: pData[i][3], waktuMulai: pData[i][4], batasWaktu: pData[i][5], targetKelas: (pData[i][6]?JSON.parse(pData[i][6]):[]), aktif: pData[i][7] });
-                        dbSoal = []; const sData = res.data.soal; for(let i=1; i<sData.length; i++) dbSoal.push(JSON.parse(sData[i][5]));
-                        dbToken = []; const tData = res.data.token; for(let i=1; i<tData.length; i++) dbToken.push({ token: tData[i][0], paketId: tData[i][1], jenis: tData[i][2], isUsed: tData[i][3], usedBy: tData[i][4] });
-                        dbHasil = []; const hData = res.data.hasil; for(let i=1; i<hData.length; i++) dbHasil.push({ wkt: hData[i][0], id: hData[i][1], siswaId: hData[i][2], nama: hData[i][3], kelas: hData[i][4], paketId: hData[i][5], mapel: hData[i][6], skor: hData[i][7], durasi: hData[i][8], detail: JSON.parse(hData[i][9]||'{}'), koreksiEsai: JSON.parse(hData[i][10]||'{}') });
-                    }
-                } catch(e) { console.error("Gagal fetch GAS:", e); showToast("Gagal koneksi ke server, memuat data lokal.", "error"); }
-                finally { document.getElementById('view-loading').classList.add('hidden'); }
-            }
 
             // CEK SESSION LAMA
             const savedSession = sessionStorage.getItem('cbt_user');
             if (savedSession) {
+                // Jika statusnya sudah pernah login dan merefresh halaman, blokir layar sejenak untuk memuat jadwal ujian
+                document.getElementById('view-loading').classList.remove('hidden');
+                document.getElementById('loading-text').innerText = "Memuat Data Sistem...";
+                await window.tarikDataServer();
+                document.getElementById('view-loading').classList.add('hidden');
+
                 const parsed = JSON.parse(savedSession);
                 if(parsed.type === 'admin') {
                     sessionUser = parsed.data;
@@ -864,6 +909,7 @@
                     switchView('view-student-dashboard');
                 }
             } else {
+                // JIKA BELUM LOGIN, TAMPILKAN HALAMAN LOGIN SECARA INSTAN TANPA LOADING SINKRON!
                 switchView('view-login');
             }
 
@@ -965,13 +1011,21 @@
         let isExamActive = false; let isExamFinished = false; let adminAktifPaketId = null; let adminConfirmAction = null;
 
         // --- UNIFIED LOGIN SYSTEM ---
-        function handleUnifiedLogin(e) {
+        async function handleUnifiedLogin(e) {
             e.preventDefault();
             const u = document.getElementById('loginUser').value.trim();
             const p = document.getElementById('loginPass').value.trim();
             const errEl = document.getElementById('login-error-msg');
             const formBox = document.getElementById('login-box');
             
+            // Tampilkan loading dan tarik data fresh saat tombol login diklik
+            document.getElementById('view-loading').classList.remove('hidden');
+            document.getElementById('loading-text').innerText = "Memverifikasi Data...";
+            
+            await window.tarikDataServer(); // Sinkronisasi database
+            
+            document.getElementById('view-loading').classList.add('hidden');
+
             // 1. Cek Admin/Guru (Gunakan String() agar data angka di spreasheet terbaca teks)
             const adm = dbAdmin.find(x => String(x.username).trim() === u && String(x.password).trim() === p);
             if(adm) {
@@ -1036,6 +1090,51 @@
             }, () => {
                 // Jika klik Batal, pop-up akan tertutup otomatis
             }, 'Ya, Keluar', 'Batal');
+        }
+
+        // --- GANTI PASSWORD LOGIC ---
+        function bukaModalGantiPassword() {
+            document.getElementById('form-ganti-password').reset();
+            document.getElementById('modal-ganti-password').classList.remove('hidden');
+        }
+
+        function tutupModalGantiPassword() {
+            document.getElementById('modal-ganti-password').classList.add('hidden');
+        }
+
+        function simpanPasswordBaru(e) {
+            e.preventDefault();
+            const pLama = document.getElementById('gp-lama').value.trim();
+            const pBaru = document.getElementById('gp-baru').value.trim();
+            const pKonfirm = document.getElementById('gp-konfirm').value.trim();
+
+            let userObj = currentSiswa || sessionUser;
+            let isSiswa = !!currentSiswa;
+
+            if (String(pLama) !== String(userObj.password)) return showToast("Password lama salah!", "error");
+            if (pBaru !== pKonfirm) return showToast("Konfirmasi password baru tidak cocok!", "error");
+            if (pBaru.length < 3) return showToast("Password baru minimal 3 karakter!", "error");
+
+            userObj.password = String(pBaru);
+            sessionStorage.setItem('cbt_user', JSON.stringify({ type: isSiswa ? 'siswa' : 'admin', data: userObj }));
+
+            tutupModalGantiPassword();
+            document.getElementById('view-loading').classList.remove('hidden');
+            document.getElementById('loading-text').innerText = "Memperbarui Password...";
+
+            if (isSiswa) {
+                fetchGAS('simpanSiswa', userObj).then(() => {
+                    document.getElementById('view-loading').classList.add('hidden');
+                    showAlertModal('success', 'Berhasil', 'Password Anda berhasil diperbarui.', () => {}, null, 'OK');
+                    if(typeof kirimLogSistem === 'function') kirimLogSistem("Ganti Password", "Siswa mengganti password akunnya.");
+                });
+            } else {
+                fetchGAS('simpanAdmin', userObj).then(() => {
+                    document.getElementById('view-loading').classList.add('hidden');
+                    showAlertModal('success', 'Berhasil', 'Password Anda berhasil diperbarui.', () => {}, null, 'OK');
+                    if(typeof kirimLogSistem === 'function') kirimLogSistem("Ganti Password", "Admin/Guru mengganti password akunnya.");
+                });
+            }
         }
 
         // --- SISWA: DASHBOARD & EXAM FLOW ---
@@ -1456,9 +1555,18 @@
         // --- ADMIN / SUPERADMIN DASHBOARD ---
         function setupAdminUI() {
             const isSuper = sessionUser.role === 'superadmin';
+            
+            // Desktop
             document.getElementById('sidebar-role-label').textContent = isSuper ? 'Panitia Ujian (Superadmin)' : 'Guru Mata Pelajaran';
-            document.getElementById('mobile-role-label').textContent = isSuper ? 'Panitia' : 'Guru';
             document.getElementById('sidebar-user-name').textContent = sessionUser.nama;
+            
+            // Mobile
+            const mobRoleLabel = isSuper ? 'Panitia Utama' : `Guru Mapel ${sessionUser.mapel}`;
+            const mobRoleEl = document.getElementById('mobile-role-label');
+            if(mobRoleEl) mobRoleEl.textContent = mobRoleLabel;
+            
+            const mobNameEl = document.getElementById('mobile-user-name');
+            if(mobNameEl) mobNameEl.textContent = sessionUser.nama;
             
             if(isSuper) {
                 document.getElementById('menu-superadmin-only').classList.remove('hidden');
