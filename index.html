@@ -295,7 +295,7 @@
                 <div class="flex justify-between items-center"><span class="text-slate-500 text-sm">Waktu Submit</span> <span class="font-bold text-slate-800 text-sm" id="finish-waktu"></span></div>
                 <div class="flex justify-between items-center pt-2 border-t border-slate-200 mt-2"><span class="text-slate-500 text-sm">Pengerjaan</span> <span class="font-bold text-indigo-600 text-sm" id="finish-durasi"></span></div>
             </div>
-            <button onclick="logoutUnified()" class="w-full bg-[#0f172a] text-white font-bold py-4 rounded-xl hover:bg-[#1e293b] shadow-md transition-all">Kembali ke Beranda</button>
+            <button onclick="renderDashboardSiswa(); switchView('view-student-dashboard');" class="w-full bg-[#0f172a] text-white font-bold py-4 rounded-xl hover:bg-[#1e293b] shadow-md transition-all">Kembali ke Beranda</button>
         </div>
     </div>
 
@@ -462,7 +462,7 @@
                         <div class="overflow-x-auto">
                             <table class="w-full text-left text-sm whitespace-nowrap">
                                 <thead class="bg-slate-50 border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px] tracking-wider">
-                                    <tr><th class="p-4">NIS / Username</th><th class="p-4">Nama Lengkap</th><th class="p-4 text-center">Kelas</th><th class="p-4 text-center">Aksi</th></tr>
+                                    <tr><th class="p-4">NIS / Username</th><th class="p-4">Nama Lengkap</th><th class="p-4 text-center">Kelas</th><th class="p-4 text-center">Riwayat Ujian</th><th class="p-4 text-center">Aksi</th></tr>
                                 </thead>
                                 <tbody id="tbody-anggota" class="divide-y divide-slate-100 font-medium"></tbody>
                             </table>
@@ -762,6 +762,20 @@
         </div>
     </div>
 
+    <!-- MODAL ALERT GLOBAL (Login & Logout) -->
+    <div id="modal-alert" class="fixed inset-0 bg-[#0f172a]/70 backdrop-blur-md z-[9999] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2.5rem] shadow-2xl p-8 pt-12 max-w-sm w-full mx-auto modal-enter border border-white/50 text-center relative mt-8">
+            <div id="modal-alert-icon-container" class="absolute left-1/2 -translate-x-1/2 -top-12 w-24 h-24 rounded-[2rem] flex items-center justify-center border-[6px] border-white z-10 transition-transform hover:scale-105">
+                <i id="modal-alert-icon" class="fas fa-check text-4xl drop-shadow-md"></i>
+            </div>
+            <h3 id="modal-alert-title" class="text-2xl font-black text-slate-800 mb-2 tracking-tight mt-4">Title</h3>
+            <p id="modal-alert-desc" class="text-slate-500 text-sm leading-relaxed font-medium mb-8 bg-slate-50/50 p-4 rounded-[1.5rem] border border-slate-100">Desc</p>
+            <div id="modal-alert-buttons" class="flex gap-3">
+                <!-- Buttons dinamis disuntik via JS -->
+            </div>
+        </div>
+    </div>
+
     <!-- SCRIPT LOGIKA UTAMA -->
     <script>
         // --- 1. REAL DATA STATE ---
@@ -791,6 +805,14 @@
                 console.error("Gagal koneksi ke server GAS:", err);
                 return { status: "error", message: err.message };
             }
+        }
+
+        // --- FUNGSI PENCATAT LOG SISTEM ---
+        function kirimLogSistem(aktivitas, keterangan) {
+            if (!GAS_URL) return;
+            const userStr = currentSiswa ? `${currentSiswa.nama} (${currentSiswa.username})` : (sessionUser ? sessionUser.nama : "Sistem");
+            // API dikirim ke background (tidak di-await agar tidak membuat UI loading)
+            fetchGAS("catatLog", { aktivitas: aktivitas, user: userStr, keterangan: keterangan }).catch(e => console.log(e));
         }
 
         // FUNGSI INIT ONLOAD
@@ -866,6 +888,58 @@
             document.getElementById(viewId).classList.remove("hidden");
         }
 
+        // --- FUNGSI ALERT MODAL GLOBAL (MODERN UI) ---
+        function showAlertModal(type, title, desc, onConfirm, onCancel, confirmText, cancelText) {
+            const modal = document.getElementById('modal-alert');
+            const iconCont = document.getElementById('modal-alert-icon-container');
+            const icon = document.getElementById('modal-alert-icon');
+            const btnCont = document.getElementById('modal-alert-buttons');
+            
+            document.getElementById('modal-alert-title').innerText = title;
+            document.getElementById('modal-alert-desc').innerText = desc;
+            
+            // Konfigurasi Warna berdasarkan Tipe
+            if(type === 'success') {
+                iconCont.className = 'absolute left-1/2 -translate-x-1/2 -top-12 w-24 h-24 rounded-[2rem] flex items-center justify-center bg-gradient-to-tr from-emerald-400 to-emerald-500 text-white shadow-[0_15px_35px_-5px_rgba(16,185,129,0.5)] border-[6px] border-white z-10 transition-transform duration-500 hover:scale-105 hover:rotate-3';
+                icon.className = 'fas fa-check text-4xl drop-shadow-md';
+            } else if(type === 'error') {
+                iconCont.className = 'absolute left-1/2 -translate-x-1/2 -top-12 w-24 h-24 rounded-[2rem] flex items-center justify-center bg-gradient-to-tr from-rose-400 to-rose-500 text-white shadow-[0_15px_35px_-5px_rgba(244,63,94,0.5)] border-[6px] border-white z-10 transition-transform duration-500 hover:scale-105 hover:-rotate-3';
+                icon.className = 'fas fa-times text-4xl drop-shadow-md';
+            } else if(type === 'question') {
+                iconCont.className = 'absolute left-1/2 -translate-x-1/2 -top-12 w-24 h-24 rounded-[2rem] flex items-center justify-center bg-gradient-to-tr from-indigo-400 to-indigo-500 text-white shadow-[0_15px_35px_-5px_rgba(99,102,241,0.5)] border-[6px] border-white z-10 transition-transform duration-500 hover:scale-105 hover:rotate-3';
+                icon.className = 'fas fa-question text-4xl drop-shadow-md';
+            }
+
+            btnCont.innerHTML = '';
+            
+            // Tombol Batal
+            if(onCancel) {
+                const btnC = document.createElement('button');
+                btnC.type = 'button';
+                btnC.className = 'flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-4 rounded-[1.25rem] transition-all duration-200 text-sm active:scale-95 shadow-sm';
+                btnC.innerText = cancelText || 'Batal';
+                btnC.onclick = () => { modal.classList.add('hidden'); onCancel(); };
+                btnCont.appendChild(btnC);
+            }
+            
+            // Tombol Konfirmasi
+            if(onConfirm) {
+                const btnO = document.createElement('button');
+                btnO.type = 'button';
+                // Warna tombol konfirmasi mengikuti tipe
+                let bgClass = 'bg-[#0f172a] hover:bg-[#1e293b] shadow-[0_10px_20px_-10px_rgba(15,23,42,0.5)]';
+                if (type === 'error') bgClass = 'bg-rose-500 hover:bg-rose-600 shadow-[0_10px_20px_-10px_rgba(244,63,94,0.5)]';
+                
+                btnO.className = `flex-1 text-white font-bold py-4 rounded-[1.25rem] transition-all duration-200 text-sm active:scale-95 ${bgClass}`;
+                btnO.innerText = confirmText || 'OK';
+                btnO.onclick = () => { modal.classList.add('hidden'); onConfirm(); };
+                btnCont.appendChild(btnO);
+            }
+
+            // Tampilkan Modal
+            modal.classList.remove('hidden');
+        }
+
         function showToast(message, type = "info") {
             const toast = document.getElementById("toast");
             document.getElementById("toast-msg").innerText = message;
@@ -904,12 +978,17 @@
                 errEl.classList.add('hidden');
                 sessionUser = adm;
                 sessionStorage.setItem('cbt_user', JSON.stringify({type:'admin', data:adm}));
-                showToast(`Selamat datang, ${adm.nama}`, "success");
+                if(typeof kirimLogSistem === 'function') kirimLogSistem("Login Admin", "Akses login dashboard portal guru/panitia.");
+                
                 document.getElementById('loginPass').value = '';
-                setupAdminUI();
-                switchView('view-admin-dashboard');
-                setTimeout(() => renderDashboardAdmin(), 300);
-                setInterval(() => syncAdminRealtime(false), 15000);
+                
+                // Panggil Pop Up Berhasil Admin
+                showAlertModal('success', 'Login Berhasil', `Selamat datang kembali, ${adm.nama}.`, () => {
+                    setupAdminUI();
+                    switchView('view-admin-dashboard');
+                    setTimeout(() => renderDashboardAdmin(), 300);
+                    setInterval(() => syncAdminRealtime(false), 15000);
+                }, null, 'Masuk Dashboard');
                 return;
             }
 
@@ -919,23 +998,44 @@
                 errEl.classList.add('hidden');
                 currentSiswa = swa;
                 sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:swa}));
-                showToast(`Login berhasil, Halo ${swa.nama}!`, "success");
+                if(typeof kirimLogSistem === 'function') kirimLogSistem("Login Siswa", "Siswa berhasil login ke beranda ujian CBT."); 
+                
                 document.getElementById('loginPass').value = '';
-                renderDashboardSiswa();
-                switchView('view-student-dashboard');
+                
+                // Panggil Pop Up Berhasil Siswa
+                showAlertModal('success', 'Login Berhasil', `Halo ${swa.nama}, selamat mengerjakan ujian!`, () => {
+                    renderDashboardSiswa();
+                    switchView('view-student-dashboard');
+                }, null, 'Masuk Beranda');
                 return;
             }
 
             // Jika Gagal
             errEl.classList.remove('hidden');
-            showToast("Username atau Password tidak cocok", "error");
             formBox.classList.remove('shake'); void formBox.offsetWidth; formBox.classList.add('shake');
+            
+            // Panggil Pop Up Error
+            showAlertModal('error', 'Login Gagal', 'Username atau Password yang Anda ketik salah. Silakan periksa kembali!', () => {
+                document.getElementById('loginPass').value = '';
+                document.getElementById('loginPass').focus();
+            }, null, 'Coba Lagi');
         }
 
         function logoutUnified() {
-            sessionStorage.removeItem('cbt_user');
-            sessionUser = null; currentSiswa = null;
-            location.reload();
+            // Panggil Pop Up Konfirmasi Logout
+            showAlertModal('question', 'Keluar Sistem?', 'Apakah Anda yakin ingin keluar dari akun ini?', () => {
+                if(currentSiswa && typeof kirimLogSistem === 'function') kirimLogSistem("Logout", "Siswa keluar sistem CBT.");
+                if(sessionUser && typeof kirimLogSistem === 'function') kirimLogSistem("Logout", "Admin keluar dari dashboard.");
+                sessionStorage.removeItem('cbt_user');
+                sessionUser = null; currentSiswa = null;
+                
+                // Pop Up Sukses Logout
+                showAlertModal('success', 'Berhasil Keluar', 'Sesi Anda telah diakhiri dengan aman.', () => {
+                    location.reload();
+                }, null, 'Tutup');
+            }, () => {
+                // Jika klik Batal, pop-up akan tertutup otomatis
+            }, 'Ya, Keluar', 'Batal');
         }
 
         // --- SISWA: DASHBOARD & EXAM FLOW ---
@@ -1062,6 +1162,8 @@
                 isExamActive = true; 
                 document.getElementById('view-exam').classList.add('exam-active-mode');
                 renderPaletteSiswa(); renderSoalSiswa('soal-content-area', false); mulaiTimerSiswa();
+                
+                kirimLogSistem("Mulai Ujian", `Siswa mulai mengerjakan paket: ${activePaket.nama}`); // PENAMBAHAN LOG
                 switchView('view-exam');
             }, 800);
         }
@@ -1261,9 +1363,14 @@
             if(!isExamActive || !currentSiswa) return;
             currentSiswa.cheatCount = (currentSiswa.cheatCount || 0) + 1;
             if (currentSiswa.cheatCount >= 3) {
+                kirimLogSistem("Pelanggaran Berat (Blokir)", `Siswa terblokir setelah 3x pelanggaran pada ujian ${activePaket.nama}`); // PENAMBAHAN LOG
+                
                 currentSiswa.isBlocked = true; isExamActive = false; clearInterval(timerInterval); exitFullscreen(); 
                 document.getElementById('cheat-count-display').textContent = currentSiswa.cheatCount; switchView('view-blocked');
-            } else { showToast(`Peringatan Kecurangan (${currentSiswa.cheatCount}/3)! Sistem merekam aktivitas mencurigakan.`, "error"); }
+            } else { 
+                kirimLogSistem("Peringatan Curang", `Peringatan ke-${currentSiswa.cheatCount} (Pindah Tab / Klik Kanan)`); // PENAMBAHAN LOG
+                showToast(`Peringatan Kecurangan (${currentSiswa.cheatCount}/3)! Sistem merekam aktivitas mencurigakan.`, "error"); 
+            }
         }
         document.addEventListener("visibilitychange", () => { if (document.hidden && isExamActive) triggerCheat(); });
         document.addEventListener('contextmenu', event => { if(isExamActive) { event.preventDefault(); triggerCheat(); } });
@@ -1282,6 +1389,9 @@
             currentSiswa.statusUjian = true;
             const finalData = { id: Date.now(), siswaId: currentSiswa.id, nama: currentSiswa.nama, kelas: currentSiswa.kelas, paketId: activePaket.id, mapel: activePaket.mapel, detail: jawabanSiswa, durasi: durasiStr, koreksiEsai: {} };
             finalData.skor = hitungSkorTotal(finalData);
+            
+            kirimLogSistem("Auto-Submit (Keluar Paksa)", `Sistem menutup paksa ujian ${activePaket.nama} dengan skor ${finalData.skor}`); // PENAMBAHAN LOG
+
             if (GAS_URL) {
                 fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'simpanHasil', data: finalData }), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, keepalive: true }).catch(e => console.log(e));
                 fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'simpanSiswa', data: currentSiswa }), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, keepalive: true }).catch(e => console.log(e));
@@ -1318,6 +1428,8 @@
             const finalData = { id: Date.now(), siswaId: currentSiswa.id, nama: currentSiswa.nama, kelas: currentSiswa.kelas, paketId: activePaket.id, mapel: activePaket.mapel, detail: jawabanSiswa, durasi: durasiStr, koreksiEsai: {} };
             finalData.skor = hitungSkorTotal(finalData); dbHasil.push(finalData); await fetchGAS('simpanHasil', finalData);
 
+            kirimLogSistem("Selesai Ujian", `Menyelesaikan paket ${activePaket.nama} dengan skor ${finalData.skor}`); // PENAMBAHAN LOG
+
             setTimeout(() => {
                 const now = new Date();
                 document.getElementById('finish-nama').textContent = currentSiswa.nama; document.getElementById('finish-mapel').textContent = activePaket.nama;
@@ -1330,8 +1442,12 @@
             e.preventDefault(); const inputToken = document.getElementById('inputTokenBlokir').value.trim().toUpperCase();
             const tokenData = dbToken.find(t => String(t.token).toUpperCase() === inputToken && t.jenis === 'Buka_Blokir' && t.paketId === tempPaketToStart?.id);
             if (!tokenData) return showToast("Token Buka Blokir tidak valid!", "error"); if (tokenData.isUsed) return showToast("Token sudah terpakai!", "error");
+            
             tokenData.isUsed = true; tokenData.usedBy = currentSiswa.nama; fetchGAS('updateStatusToken', tokenData);
             currentSiswa.isBlocked = false; currentSiswa.cheatCount = 0; fetchGAS('simpanSiswa', currentSiswa);
+            
+            kirimLogSistem("Buka Blokir", `Siswa berhasil membuka blokir menggunakan token khusus.`); // PENAMBAHAN LOG
+
             document.getElementById('inputTokenBlokir').value = ''; showToast("Blokir dibuka. Harap kerjakan dengan jujur!", "success");
             enterFullscreen(); isExamActive = true; document.getElementById('view-exam').classList.add('exam-active-mode'); mulaiTimerSiswa(); switchView('view-exam');
         }
