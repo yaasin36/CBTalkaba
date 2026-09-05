@@ -15,6 +15,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
+    <!-- Quill Editor -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+
     <style>
         body { font-family: "Inter", sans-serif; }
         
@@ -62,6 +66,24 @@
             20%, 80% { transform: translate3d(2px, 0, 0); }
             30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
             40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* Quill Editor Overrides */
+        .ql-container {
+            font-family: "Inter", sans-serif;
+            font-size: 14px;
+            background-color: #f8fafc; /* slate-50 */
+            border-bottom-left-radius: 0.75rem;
+            border-bottom-right-radius: 0.75rem;
+        }
+        .ql-toolbar {
+            background-color: #f1f5f9; /* slate-100 */
+            border-top-left-radius: 0.75rem;
+            border-top-right-radius: 0.75rem;
+            border-bottom: none;
+        }
+        .ql-editor {
+            min-height: 100px;
         }
     </style>
 </head>
@@ -240,7 +262,7 @@
                         <span id="label-jenis-soal" class="text-[10px] font-bold text-slate-400 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-sm">Jenis Soal</span>
                     </div>
                     <!-- Konten Soal Dinamis -->
-                    <div id="soal-content-area" class="w-full"></div>
+                    <div id="soal-content-area" class="w-full ql-editor px-0 py-0"></div>
                 </div>
 
                 <!-- Nav Buttons -->
@@ -663,7 +685,8 @@
                     <!-- 2. TEKS PERTANYAAN UTAMA & GAMBAR -->
                     <div class="mb-8 bg-white p-6 rounded-[1.5rem] border border-slate-200 shadow-sm">
                         <label class="block text-xs font-black text-slate-600 uppercase tracking-widest mb-4"><i class="fas fa-pen mr-2 text-slate-400"></i> 2. Narasi / Pertanyaan Utama</label>
-                        <textarea id="edit-teks-soal" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 text-sm outline-none focus:border-[#0f172a] focus:ring-1 focus:ring-[#0f172a] focus:bg-white min-h-[120px] font-medium leading-relaxed shadow-inner" placeholder="Ketik narasi, deskripsi, atau pertanyaan inti di sini..."></textarea>
+                        <div id="edit-teks-soal-editor" class="mb-2"></div>
+                        <input type="hidden" id="edit-teks-soal" required>
                         
                         <!-- Upload Gambar Soal -->
                         <div class="mt-5 bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm inline-block w-full">
@@ -693,8 +716,8 @@
                             <label class="block text-xs font-black text-slate-600 uppercase tracking-widest"><i class="fas fa-table mr-2 text-slate-400"></i> 3. Tabel Pernyataan (Benar / Salah)</label>
                             <button type="button" onclick="addBSRow()" class="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-4 py-2 rounded-lg hover:bg-indigo-100 transition shadow-sm flex items-center gap-1.5 active:scale-95"><i class="fas fa-plus"></i> Tambah Baris</button>
                         </div>
-                        <div class="bg-slate-50 rounded-xl border border-slate-200 shadow-inner overflow-hidden mb-2">
-                            <table class="w-full text-left border-collapse">
+                        <div class="bg-slate-50 rounded-xl border border-slate-200 shadow-inner overflow-x-auto mb-2">
+                            <table class="w-full text-left border-collapse min-w-[450px]">
                                 <thead class="bg-white border-b border-slate-200">
                                     <tr>
                                         <th class="p-3 text-[10px] font-black text-slate-400 uppercase tracking-widest w-12 text-center border-r border-slate-100">No</th>
@@ -768,7 +791,7 @@
                         <span id="preview-label-jenis" class="text-[10px] font-bold text-slate-400 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-sm">Jenis</span>
                     </div>
                     <!-- Area Soal Disuntik -->
-                    <div id="preview-content-area" class="w-full"></div>
+                    <div id="preview-content-area" class="w-full ql-editor px-0 py-0"></div>
                 </div>
             </div>
         </div>
@@ -905,8 +928,37 @@
                     setInterval(() => syncAdminRealtime(false), 15000);
                 } else if(parsed.type === 'siswa') {
                     currentSiswa = parsed.data;
-                    renderDashboardSiswa();
-                    switchView('view-student-dashboard');
+                    
+                    // Check if there is an active exam
+                    let activeExamFound = false;
+                    for (let i = 0; i < sessionStorage.length; i++) {
+                        const key = sessionStorage.key(i);
+                        if (key && key.startsWith(`exam_state_${currentSiswa.id}_`)) {
+                            const paketId = key.split('_')[3];
+                            const savedStateStr = sessionStorage.getItem(key);
+                            if (savedStateStr) {
+                                try {
+                                    const savedState = JSON.parse(savedStateStr);
+                                    if (savedState && savedState.waktuTersisa > 0) {
+                                        // Found an active exam, resume it
+                                        tempPaketToStart = dbPaket.find(p => p.id === paketId);
+                                        if (tempPaketToStart) {
+                                            activeExamFound = true;
+                                            mulaiUjian(false); // Resume exam
+                                            break;
+                                        }
+                                    }
+                                } catch (e) {
+                                    console.error("Failed to parse saved state on load:", e);
+                                }
+                            }
+                        }
+                    }
+
+                    if (!activeExamFound) {
+                        renderDashboardSiswa();
+                        switchView('view-student-dashboard');
+                    }
                 }
             } else {
                 // JIKA BELUM LOGIN, TAMPILKAN HALAMAN LOGIN SECARA INSTAN TANPA LOADING SINKRON!
@@ -1009,8 +1061,21 @@
         let soalSiswa = []; let jawabanSiswa = {}; let statusRagu = {}; 
         let currentIndex = 0; let waktuTersisa = 0; let timerInterval; let waktuMulaiUjian = null;
         let isExamActive = false; let isExamFinished = false; let adminAktifPaketId = null; let adminConfirmAction = null;
+        
+        let quillEditors = {}; // To store Quill instances
+        const quillOptions = {
+            modules: {
+                toolbar: [
+                    ['bold', 'italic', 'underline'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    [{ 'align': [] }],
+                    ['clean']
+                ]
+            },
+            theme: 'snow'
+        };
 
-        // --- UNIFIED LOGIN SYSTEM ---
+        // --- STREAMING_CHUNK:Unified Login System Logic... ---
         async function handleUnifiedLogin(e) {
             e.preventDefault();
             const u = document.getElementById('loginUser').value.trim();
@@ -1137,6 +1202,7 @@
             }
         }
 
+        // --- STREAMING_CHUNK:Student Dashboard & Dynamic Exam Timer... ---
         // --- SISWA: DASHBOARD & EXAM FLOW ---
         function renderDashboardSiswa() {
             document.getElementById('sd-nama').textContent = currentSiswa.nama;
@@ -1172,8 +1238,9 @@
                     btnHtml = `<button onclick="bukaInfoUjian('${p.id}', true)" class="w-full bg-amber-500 text-white hover:bg-amber-600 font-bold py-3.5 rounded-xl mt-auto text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2"><i class="fas fa-key"></i> Butuh Token Susulan</button>`;
                     cardStyle = 'bg-white border-red-100';
                 } else {
+                    const hasSavedState = !!sessionStorage.getItem(`exam_state_${currentSiswa.id}_${p.id}`);
                     statusHtml = '<span class="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-indigo-100 flex items-center w-fit gap-1.5 animate-pulse"><i class="fas fa-play-circle"></i> Berlangsung</span>';
-                    btnHtml = `<button onclick="bukaInfoUjian('${p.id}', false)" class="w-full bg-[#0f172a] text-white hover:bg-[#1e293b] font-bold py-3.5 rounded-xl mt-auto text-sm shadow-[0_4px_15px_-3px_rgba(15,23,42,0.4)] transition active:scale-95 flex items-center justify-center gap-2">Kerjakan <i class="fas fa-arrow-right"></i></button>`;
+                    btnHtml = `<button onclick="bukaInfoUjian('${p.id}', false)" class="w-full bg-[#0f172a] text-white hover:bg-[#1e293b] font-bold py-3.5 rounded-xl mt-auto text-sm shadow-[0_4px_15px_-3px_rgba(15,23,42,0.4)] transition active:scale-95 flex items-center justify-center gap-2">${hasSavedState ? 'Lanjutkan' : 'Kerjakan'} <i class="fas fa-arrow-right"></i></button>`;
                     cardStyle = 'bg-white hover:-translate-y-1 hover:shadow-xl';
                 }
 
@@ -1241,32 +1308,84 @@
             let rawSoal = dbSoal.filter(s => s.paketId === activePaket.id);
             if(rawSoal.length === 0) return showToast("Belum ada soal di dalam paket ini.", "error");
 
-            const shuffleArray = (array) => { let arr = [...array]; for (let i=arr.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1)); [arr[i], arr[j]]=[arr[j], arr[i]]; } return arr; };
-            let sPG = shuffleArray(rawSoal.filter(s => s.jenis === 'PG' || s.jenis === 'PGK'));
-            let sEsai = shuffleArray(rawSoal.filter(s => s.jenis === 'ESAI'));
-            let sBS = shuffleArray(rawSoal.filter(s => s.jenis === 'BS'));
-            let sJodoh = shuffleArray(rawSoal.filter(s => s.jenis === 'JODOH'));
-            soalSiswa = [...sPG, ...sEsai, ...sBS, ...sJodoh];
+            const savedStateStr = sessionStorage.getItem(`exam_state_${currentSiswa.id}_${activePaket.id}`);
+            let savedState = null;
+            if (savedStateStr) {
+                try {
+                    savedState = JSON.parse(savedStateStr);
+                } catch (e) {
+                    console.error("Gagal parse saved state:", e);
+                }
+            }
+
+            if (savedState && savedState.soalSiswa && savedState.soalSiswa.length > 0) {
+                soalSiswa = savedState.soalSiswa;
+                jawabanSiswa = savedState.jawabanSiswa || {};
+                statusRagu = savedState.statusRagu || {};
+                currentIndex = savedState.currentIndex || 0;
+            } else {
+                const shuffleArray = (array) => { let arr = [...array]; for (let i=arr.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1)); [arr[i], arr[j]]=[arr[j], arr[i]]; } return arr; };
+                let sPG = shuffleArray(rawSoal.filter(s => s.jenis === 'PG' || s.jenis === 'PGK'));
+                let sEsai = shuffleArray(rawSoal.filter(s => s.jenis === 'ESAI'));
+                let sBS = shuffleArray(rawSoal.filter(s => s.jenis === 'BS'));
+                let sJodoh = shuffleArray(rawSoal.filter(s => s.jenis === 'JODOH'));
+                soalSiswa = [...sPG, ...sEsai, ...sBS, ...sJodoh];
+                jawabanSiswa = {}; statusRagu = {}; currentIndex = 0; 
+            }
 
             document.getElementById('header-mapel').textContent = activePaket.nama;
             document.getElementById('header-nama').textContent = `${currentSiswa.nama} - ${currentSiswa.kelas}`;
-            jawabanSiswa = {}; statusRagu = {}; currentIndex = 0; 
             
-            waktuTersisa = activePaket.durasi * 60; // Diberikan full waktu
+            // --- LOGIKA DURASI KETAT ---
+            const nowTime = new Date();
+            const endTime = new Date(activePaket.batasWaktu);
+            let sisaDetik = Math.floor((endTime - nowTime) / 1000);
             
-            isExamFinished = false; enterFullscreen(); waktuMulaiUjian = new Date(); 
+            if (isLate) {
+                waktuTersisa = activePaket.durasi * 60; // Diberikan full waktu bersih karena susulan
+            } else {
+                waktuTersisa = sisaDetik < (activePaket.durasi * 60) ? sisaDetik : activePaket.durasi * 60; // Waktu sisa akan terpotong batas akhir
+                if (waktuTersisa <= 0) waktuTersisa = 10; // Sistem minimal toleransi jika sangat mepet
+            }
+
+            if (savedState && savedState.waktuTersisa && savedState.waktuTersisa > 0) {
+                 // Use saved time if it's less than what they currently have, preventing them from gaining time by refreshing
+                 if(savedState.waktuTersisa < waktuTersisa){
+                     waktuTersisa = savedState.waktuTersisa;
+                 }
+            }
+            
+            isExamFinished = false; enterFullscreen(); waktuMulaiUjian = nowTime; 
             switchView('view-loading'); document.getElementById("loading-text").innerText = "Menyiapkan Lembar Soal...";
             
             setTimeout(() => {
                 isExamActive = true; 
                 document.getElementById('view-exam').classList.add('exam-active-mode');
                 renderPaletteSiswa(); renderSoalSiswa('soal-content-area', false); mulaiTimerSiswa();
+                simpanStateUjian();
                 
-                kirimLogSistem("Mulai Ujian", `Siswa mulai mengerjakan paket: ${activePaket.nama}`); // PENAMBAHAN LOG
+                if(!savedState) {
+                    kirimLogSistem("Mulai Ujian", `Siswa mulai mengerjakan paket: ${activePaket.nama}`); // PENAMBAHAN LOG
+                } else {
+                    kirimLogSistem("Melanjutkan Ujian", `Siswa melanjutkan mengerjakan paket: ${activePaket.nama}`); // PENAMBAHAN LOG
+                }
                 switchView('view-exam');
             }, 800);
         }
 
+        function simpanStateUjian() {
+            if (!isExamActive || !currentSiswa || !activePaket) return;
+            const state = {
+                soalSiswa: soalSiswa,
+                jawabanSiswa: jawabanSiswa,
+                statusRagu: statusRagu,
+                currentIndex: currentIndex,
+                waktuTersisa: waktuTersisa
+            };
+            sessionStorage.setItem(`exam_state_${currentSiswa.id}_${activePaket.id}`, JSON.stringify(state));
+        }
+
+        // --- STREAMING_CHUNK:Question Rendering Engine... ---
         // --- RENDER SOAL ENGINE ---
         function renderSoalSiswa(containerId, isPreview = false) {
             const container = typeof containerId === 'string' ? document.getElementById(containerId) : containerId;
@@ -1325,8 +1444,8 @@
             else if (soal.jenis === 'BS') {
                 const ansObj = jawabanSiswa[soal.id] || {};
                 html += `
-                <div class="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-                    <table class="w-full text-left bg-white">
+                <div class="border border-slate-200 rounded-2xl overflow-x-auto shadow-sm">
+                    <table class="w-full text-left bg-white min-w-[450px]">
                         <thead class="bg-slate-50 border-b border-slate-200">
                             <tr>
                                 <th class="p-4 text-[10px] font-black uppercase tracking-widest text-slate-500 text-center w-12 border-r border-slate-200">No</th>
@@ -1338,14 +1457,15 @@
                         <tbody class="divide-y divide-slate-100">`;
                 (soal.pernyataan || []).forEach((p, idx) => {
                     const ans = isPreview ? null : ansObj[idx];
+                    const imgHtml = (p.img && p.img.length > 10) ? `<div class="mt-2"><img src="${p.img}" class="max-h-24 w-auto rounded border border-slate-200 p-1 shadow-sm bg-slate-50"></div>` : '';
                     html += `
                         <tr class="hover:bg-slate-50/50 transition">
-                            <td class="p-4 text-sm text-center border-r border-slate-100 font-bold text-slate-400">${idx+1}</td>
-                            <td class="p-4 text-sm font-medium text-slate-700 whitespace-pre-wrap leading-relaxed">${p.teks}</td>
-                            <td class="p-4 text-center border-l border-slate-100 bg-emerald-50/10 cursor-pointer hover:bg-emerald-50 transition" onclick="${isPreview?'':`document.getElementById('bs_B_${soal.id}_${idx}').click()`}">
+                            <td class="p-4 text-sm text-center border-r border-slate-100 font-bold text-slate-400 align-top pt-5">${idx+1}</td>
+                            <td class="p-4 text-sm font-medium text-slate-700 whitespace-pre-wrap leading-relaxed align-top">${p.teks}${imgHtml}</td>
+                            <td class="p-4 text-center border-l border-slate-100 bg-emerald-50/10 cursor-pointer hover:bg-emerald-50 transition align-top pt-5" onclick="${isPreview?'':`document.getElementById('bs_B_${soal.id}_${idx}').click()`}">
                                 <input type="radio" id="bs_B_${soal.id}_${idx}" name="bs_${soal.id}_${idx}" value="B" class="w-5 h-5 cursor-pointer accent-emerald-500 pointer-events-none" ${ans==='B'?'checked':''} onchange="${isPreview?'':`simpanJawabanSiswa({idx:${idx}, val:'B'}, 'BS')`}">
                             </td>
-                            <td class="p-4 text-center border-l border-slate-100 bg-red-50/10 cursor-pointer hover:bg-red-50 transition" onclick="${isPreview?'':`document.getElementById('bs_S_${soal.id}_${idx}').click()`}">
+                            <td class="p-4 text-center border-l border-slate-100 bg-red-50/10 cursor-pointer hover:bg-red-50 transition align-top pt-5" onclick="${isPreview?'':`document.getElementById('bs_S_${soal.id}_${idx}').click()`}">
                                 <input type="radio" id="bs_S_${soal.id}_${idx}" name="bs_${soal.id}_${idx}" value="S" class="w-5 h-5 cursor-pointer accent-red-500 pointer-events-none" ${ans==='S'?'checked':''} onchange="${isPreview?'':`simpanJawabanSiswa({idx:${idx}, val:'S'}, 'BS')`}">
                             </td>
                         </tr>`;
@@ -1399,6 +1519,7 @@
             if(!isPreview) updatePaletteStyleSiswa();
         }
 
+        // --- STREAMING_CHUNK:Student Navigation & Cheat Detection... ---
         function simpanJawabanSiswa(val, type) {
             const sId = soalSiswa[currentIndex].id; 
             if(type === 'PG' || type === 'ESAI') { jawabanSiswa[sId] = val; } 
@@ -1406,13 +1527,15 @@
             else if (type === 'BS') { if(!jawabanSiswa[sId]) jawabanSiswa[sId] = {}; jawabanSiswa[sId][val.idx] = val.val; } 
             else if (type === 'JODOH') { if(!jawabanSiswa[sId]) jawabanSiswa[sId] = {}; if(val.idKanan === "") delete jawabanSiswa[sId][val.idKiri]; else jawabanSiswa[sId][val.idKiri] = val.idKanan; }
 
+            simpanStateUjian();
+
             if(type === 'PG') renderSoalSiswa('soal-content-area', false); 
             else updatePaletteStyleSiswa(); 
         }
 
-        function toggleRagu() { statusRagu[currentIndex] = document.getElementById('checkbox-ragu').checked; updatePaletteStyleSiswa(); }
-        function soalSelanjutnya() { if (currentIndex < soalSiswa.length - 1) { currentIndex++; renderSoalSiswa('soal-content-area'); } }
-        function soalSebelumnya() { if (currentIndex > 0) { currentIndex--; renderSoalSiswa('soal-content-area'); } }
+        function toggleRagu() { statusRagu[currentIndex] = document.getElementById('checkbox-ragu').checked; simpanStateUjian(); updatePaletteStyleSiswa(); }
+        function soalSelanjutnya() { if (currentIndex < soalSiswa.length - 1) { currentIndex++; simpanStateUjian(); renderSoalSiswa('soal-content-area'); } }
+        function soalSebelumnya() { if (currentIndex > 0) { currentIndex--; simpanStateUjian(); renderSoalSiswa('soal-content-area'); } }
 
         function renderPaletteSiswa() {
             const container = document.getElementById('palette-container'); container.innerHTML = '';
@@ -1453,6 +1576,7 @@
                 const s = (waktuTersisa % 60).toString().padStart(2, '0');
                 timerEl.textContent = `${m}:${s}`;
                 if (waktuTersisa <= 300 && waktuTersisa > 0) { timerEl.classList.remove('text-indigo-700'); timerEl.classList.add('text-red-600'); timerEl.previousElementSibling.classList.replace('text-indigo-500', 'text-red-500'); }
+                if (waktuTersisa % 10 === 0) simpanStateUjian(); // Save time every 10 seconds
                 if (waktuTersisa <= 0) akhiriUjian();
             }, 1000);
         }
@@ -1461,6 +1585,7 @@
         function triggerCheat() {
             if(!isExamActive || !currentSiswa) return;
             currentSiswa.cheatCount = (currentSiswa.cheatCount || 0) + 1;
+            simpanStateUjian();
             if (currentSiswa.cheatCount >= 3) {
                 kirimLogSistem("Pelanggaran Berat (Blokir)", `Siswa terblokir setelah 3x pelanggaran pada ujian ${activePaket.nama}`); // PENAMBAHAN LOG
                 
@@ -1486,7 +1611,7 @@
             isExamFinished = true; let durasiDetik = waktuMulaiUjian ? Math.floor((new Date() - waktuMulaiUjian) / 1000) : 0;
             const durasiStr = `${Math.floor(durasiDetik / 60)} Menit ${durasiDetik % 60} Detik (Keluar Paksa)`;
             currentSiswa.statusUjian = true;
-            const finalData = { id: Date.now(), siswaId: currentSiswa.id, nama: currentSiswa.nama, kelas: currentSiswa.kelas, paketId: activePaket.id, mapel: activePaket.mapel, detail: jawabanSiswa, durasi: durasiStr, koreksiEsai: {} };
+            const finalData = { id: Date.now(), siswaId: currentSiswa.id || currentSiswa.username, nama: currentSiswa.nama, kelas: currentSiswa.kelas, paketId: activePaket.id, mapel: activePaket.mapel, detail: jawabanSiswa, durasi: durasiStr, koreksiEsai: {} };
             finalData.skor = hitungSkorTotal(finalData);
             
             kirimLogSistem("Auto-Submit (Keluar Paksa)", `Sistem menutup paksa ujian ${activePaket.nama} dengan skor ${finalData.skor}`); // PENAMBAHAN LOG
@@ -1495,6 +1620,7 @@
                 fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'simpanHasil', data: finalData }), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, keepalive: true }).catch(e => console.log(e));
                 fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'simpanSiswa', data: currentSiswa }), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, keepalive: true }).catch(e => console.log(e));
             }
+            sessionStorage.removeItem(`exam_state_${currentSiswa.id}_${activePaket.id}`);
         }
         window.addEventListener('beforeunload', function (e) { if (currentSiswa && activePaket && !isExamFinished) submitLatarBelakang(); });
         window.addEventListener('pagehide', function (e) { if (currentSiswa && activePaket && !isExamFinished) submitLatarBelakang(); });
@@ -1524,10 +1650,11 @@
             switchView('view-loading'); document.getElementById("loading-text").innerText = "Menyimpan ke Server...";
 
             currentSiswa.statusUjian = true; fetchGAS("simpanSiswa", currentSiswa);
-            const finalData = { id: Date.now(), siswaId: currentSiswa.id, nama: currentSiswa.nama, kelas: currentSiswa.kelas, paketId: activePaket.id, mapel: activePaket.mapel, detail: jawabanSiswa, durasi: durasiStr, koreksiEsai: {} };
+            const finalData = { id: Date.now(), siswaId: currentSiswa.id || currentSiswa.username, nama: currentSiswa.nama, kelas: currentSiswa.kelas, paketId: activePaket.id, mapel: activePaket.mapel, detail: jawabanSiswa, durasi: durasiStr, koreksiEsai: {} };
             finalData.skor = hitungSkorTotal(finalData); dbHasil.push(finalData); await fetchGAS('simpanHasil', finalData);
 
             kirimLogSistem("Selesai Ujian", `Menyelesaikan paket ${activePaket.nama} dengan skor ${finalData.skor}`); // PENAMBAHAN LOG
+            sessionStorage.removeItem(`exam_state_${currentSiswa.id}_${activePaket.id}`);
 
             setTimeout(() => {
                 const now = new Date();
@@ -1551,7 +1678,7 @@
             enterFullscreen(); isExamActive = true; document.getElementById('view-exam').classList.add('exam-active-mode'); mulaiTimerSiswa(); switchView('view-exam');
         }
 
-
+        // --- STREAMING_CHUNK:Admin Setup and Dashboard Navigation... ---
         // --- ADMIN / SUPERADMIN DASHBOARD ---
         function setupAdminUI() {
             const isSuper = sessionUser.role === 'superadmin';
@@ -1759,6 +1886,7 @@
         function kembaliKePaketHasil() { document.getElementById('panel-detail-hasil').classList.add('hidden'); document.getElementById('panel-paket-hasil').classList.remove('hidden'); tempPaketHasil = null; }
         function printTabelHasil() { window.print(); }
 
+        // --- STREAMING_CHUNK:PDF Rendering Engine... ---
         // --- FUNGSI PDF DETAIL UJIAN ---
         function lihatDetailPDF(id) {
             const hsl = dbHasil.find(x=>x.id==id); if(!hsl) return;
@@ -1804,10 +1932,11 @@
                     const stuAnsObj = ans || {}; let correctCount = 0; let bsRows = '';
                     (s.pernyataan||[]).forEach((p, idx) => {
                         const sAns = stuAnsObj[idx]; const isMatch = sAns === p.kunci; if(isMatch) correctCount++;
-                        bsRows += `<tr class="border-b border-slate-100 last:border-0 hover:bg-white transition"><td class="py-3 px-3 text-sm font-medium text-slate-700">${p.teks}</td><td class="py-3 px-3 text-center text-sm font-bold ${isMatch ? 'text-emerald-600 bg-emerald-50/50' : 'text-red-600 bg-red-50/50 border-x border-red-100'}">${sAns==='B'?'Benar':sAns==='S'?'Salah':'-'}</td><td class="py-3 px-3 text-center text-sm font-bold text-slate-600">${p.kunci==='B'?'Benar':'Salah'}</td></tr>`;
+                        const imgHtml = (p.img && p.img.length > 10) ? `<div class="mt-2"><img src="${p.img}" class="max-h-24 w-auto rounded border border-slate-200 p-1 shadow-sm bg-white"></div>` : '';
+                        bsRows += `<tr class="border-b border-slate-100 last:border-0 hover:bg-white transition"><td class="py-3 px-3 text-sm font-medium text-slate-700 align-top">${p.teks}${imgHtml}</td><td class="py-3 px-3 text-center text-sm font-bold align-top pt-4 ${isMatch ? 'text-emerald-600 bg-emerald-50/50' : 'text-red-600 bg-red-50/50 border-x border-red-100'}">${sAns==='B'?'Benar':sAns==='S'?'Salah':'-'}</td><td class="py-3 px-3 text-center text-sm font-bold text-slate-600 align-top pt-4">${p.kunci==='B'?'Benar':'Salah'}</td></tr>`;
                     });
                     isFullyCorrect = s.pernyataan?.length > 0 && correctCount === s.pernyataan.length;
-                    detailHtml = `<div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 overflow-hidden shadow-sm"><table class="w-full text-left"><thead class="bg-slate-100/50 border-b border-slate-200"><tr><th class="py-2.5 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Pernyataan</th><th class="py-2.5 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center w-28 border-x border-slate-200">Jawaban Siswa</th><th class="py-2.5 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center w-20">Kunci</th></tr></thead><tbody>${bsRows}</tbody></table></div>`;
+                    detailHtml = `<div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 overflow-x-auto shadow-sm"><table class="w-full text-left min-w-[450px]"><thead class="bg-slate-100/50 border-b border-slate-200"><tr><th class="py-2.5 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Pernyataan</th><th class="py-2.5 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center w-28 border-x border-slate-200">Jawaban Siswa</th><th class="py-2.5 px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center w-20">Kunci</th></tr></thead><tbody>${bsRows}</tbody></table></div>`;
                 }
                 else if (s.jenis === 'JODOH') {
                     const stuAnsObj = ans || {}; let correctCount = 0; let jodohRows = '';
@@ -1859,6 +1988,7 @@
         function tutupModalPDF() { document.getElementById('modal-pdf').classList.add('hidden'); }
         function downloadPDF() { const element = document.getElementById('pdf-content-area'); const opt = { margin:0.4, filename:'Laporan_Nilai_CBT.pdf', image:{type:'jpeg', quality:0.98}, html2canvas:{scale:2, useCORS:true}, jsPDF:{unit:'in', format:'a4', orientation:'portrait'} }; html2pdf().set(opt).from(element).save().then(()=>{showToast("PDF Didownload", "success");}).catch(err => { window.print(); }); }
 
+        // --- STREAMING_CHUNK:Admin Forms and Settings Setup... ---
         // --- ADMIN: DATA GURU (SUPERADMIN ONLY) ---
         function renderTableAdmin() {
             const tbody = document.getElementById('tbody-admin-list'); tbody.innerHTML = '';
@@ -2011,6 +2141,7 @@
             dbToken.push(tokenData); fetchGAS("simpanToken", tokenData); renderFormToken(); showToast(`Token berhasil digenerate`, "success"); 
         }
 
+        // --- STREAMING_CHUNK:Exam Package Logic... ---
         // --- ADMIN: PAKET SOAL ---
         function renderGridPaket() {
             document.getElementById('panel-paket-soal').classList.remove('hidden'); document.getElementById('panel-list-soal').classList.add('hidden');
@@ -2087,11 +2218,10 @@
                 <div><label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nama Paket Ujian</label><input type="text" id="cpNama" required value="${p ? p.nama : ''}" class="w-full border border-slate-200 rounded-xl px-4 py-3.5 text-sm bg-white outline-none focus:border-indigo-500 shadow-sm" placeholder="Contoh: UTS Ganjil 2026"></div>
                 <div><label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Mata Pelajaran</label>${mapelInput}</div>
                 <div><label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Target Kelas (Pilih Minimal 1)</label><div class="bg-white border border-slate-200 rounded-xl p-2 max-h-40 overflow-y-auto shadow-inner flex flex-col gap-1">${classCheckboxes}</div></div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div><label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Durasi (Menit)</label><input type="number" id="cpDurasi" required value="${p ? p.durasi : '90'}" class="w-full border border-slate-200 rounded-xl px-4 py-3.5 text-sm bg-white outline-none focus:border-indigo-500 shadow-sm"></div>
-                    <div><label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Waktu Buka</label><input type="datetime-local" id="cpWaktu" required value="${valWaktu}" class="w-full border border-slate-200 rounded-xl px-4 py-3.5 text-sm bg-white outline-none focus:border-indigo-500 shadow-sm"></div>
+                <div class="grid grid-cols-2 gap-4 mt-2">
+                    <div><label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Waktu Mulai</label><input type="datetime-local" id="cpWaktu" required value="${valWaktu}" class="w-full border border-slate-200 rounded-xl px-4 py-3.5 text-sm bg-white outline-none focus:border-indigo-500 shadow-sm"></div>
+                    <div><label class="block text-[10px] font-black text-red-500 uppercase tracking-widest mb-2">Tenggat Pengerjaan</label><input type="datetime-local" id="cpBatas" required value="${valBatas}" class="w-full border border-red-200 rounded-xl px-4 py-3.5 text-sm bg-red-50/50 outline-none focus:border-red-500 text-red-700 font-bold shadow-sm"></div>
                 </div>
-                <div class="mt-2"><label class="block text-[10px] font-black text-red-500 uppercase tracking-widest mb-2">Tenggat Terakhir Masuk</label><input type="datetime-local" id="cpBatas" required value="${valBatas}" class="w-full border border-red-200 rounded-xl px-4 py-3.5 text-sm bg-red-50/50 outline-none focus:border-red-500 text-red-700 font-bold shadow-sm"></div>
             `;
             
             document.getElementById('form-crud').onsubmit = e => { 
@@ -2101,14 +2231,22 @@
                 if (isAll) checkedClasses = ["ALL"];
                 if (checkedClasses.length === 0) return showToast("Pilih minimal 1 Target Kelas!", "error");
 
+                const waktuMulai = document.getElementById('cpWaktu').value;
+                const batasWaktu = document.getElementById('cpBatas').value;
+                const tMulai = new Date(waktuMulai).getTime();
+                const tBatas = new Date(batasWaktu).getTime();
+                
+                if(tBatas <= tMulai) return showToast("Tenggat Pengerjaan harus setelah Waktu Mulai!", "error");
+                const calcDurasi = Math.round((tBatas - tMulai) / 60000);
+
                 const editId = document.getElementById('cpId').value; let pkt;
                 if (editId) {
                     pkt = dbPaket.find(x => x.id === editId);
-                    pkt.nama = document.getElementById('cpNama').value; pkt.mapel = document.getElementById('cpMapel').value; pkt.durasi = parseInt(document.getElementById('cpDurasi').value);
-                    pkt.waktuMulai = document.getElementById('cpWaktu').value; pkt.batasWaktu = document.getElementById('cpBatas').value; pkt.targetKelas = checkedClasses;
+                    pkt.nama = document.getElementById('cpNama').value; pkt.mapel = document.getElementById('cpMapel').value; pkt.durasi = calcDurasi;
+                    pkt.waktuMulai = waktuMulai; pkt.batasWaktu = batasWaktu; pkt.targetKelas = checkedClasses;
                 } else {
                     const newPaketId = 'P'+Date.now();
-                    pkt = { id: newPaketId, nama: document.getElementById('cpNama').value, mapel: document.getElementById('cpMapel').value, durasi: parseInt(document.getElementById('cpDurasi').value), waktuMulai: document.getElementById('cpWaktu').value, batasWaktu: document.getElementById('cpBatas').value, targetKelas: checkedClasses, aktif: true };
+                    pkt = { id: newPaketId, nama: document.getElementById('cpNama').value, mapel: document.getElementById('cpMapel').value, durasi: calcDurasi, waktuMulai: waktuMulai, batasWaktu: batasWaktu, targetKelas: checkedClasses, aktif: true };
                     dbPaket.push(pkt); 
                     const tk = {token: Math.random().toString(36).substr(2,6).toUpperCase(), paketId: newPaketId, jenis: 'Reguler', isUsed: false, usedBy: null};
                     dbToken.push(tk); fetchGAS("simpanToken", tk); 
@@ -2121,6 +2259,7 @@
             document.getElementById('modal-crud').classList.remove('hidden');
         }
 
+        // --- STREAMING_CHUNK:Question Content Management... ---
         function bukaListSoal(paketId) {
             adminAktifPaketId = paketId;
             document.getElementById('panel-paket-soal').classList.add('hidden'); document.getElementById('panel-list-soal').classList.remove('hidden');
@@ -2161,6 +2300,13 @@
             else if (j === 'ESAI') { document.getElementById('block-esai').classList.remove('hidden'); }
         }
 
+        function initQuill(id) {
+            if (!quillEditors[id]) {
+                quillEditors[id] = new Quill(`#${id}`, quillOptions);
+            }
+            return quillEditors[id];
+        }
+
         async function previewMainImage(input) {
             if (input.files && input.files[0]) {
                 const b64 = await fileToBase64(input.files[0]);
@@ -2184,13 +2330,17 @@
                         <div class="pt-3"><input type="${jenis==='PGK'?'checkbox':'radio'}" name="kunci_pg" value="${a}" class="w-5 h-5 cursor-pointer accent-emerald-500"></div>
                         <div class="w-12 h-12 rounded-xl bg-white flex items-center justify-center font-black text-indigo-700 text-lg border border-slate-200 shadow-sm flex-shrink-0 group-hover:border-indigo-300">${a}</div>
                         <div class="flex-grow flex flex-col gap-3 w-full overflow-hidden">
-                            <textarea id="opsi-teks-${a}" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none resize-none h-12 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 shadow-inner transition" placeholder="Teks opsi ${a}..."></textarea>
+                            <div id="opsi-teks-editor-${a}" class="mb-2"></div>
+                            <input type="hidden" id="opsi-teks-${a}">
                             <div class="flex items-center gap-3">
                                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-white border border-slate-200 px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-100 transition shadow-sm flex items-center gap-1.5"><i class="fas fa-image text-indigo-400"></i> Gambar <input type="file" id="opsi-img-${a}" accept="image/*" class="hidden" onchange="previewOpsiImage(this, '${a}')"></label>
                                 <div id="preview-opsi-container-${a}" class="hidden relative inline-block border border-slate-200 rounded-lg p-1 bg-white shadow-sm"><img id="preview-opsi-${a}" src="" class="h-10 w-auto rounded object-contain"><button type="button" onclick="removeOpsiImage('${a}')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-[10px] flex items-center justify-center shadow hover:bg-red-600 border border-white"><i class="fas fa-times"></i></button></div>
                             </div>
                         </div>
                     </div>`;
+                });
+                ['A','B','C','D','E'].forEach(a => {
+                    initQuill(`opsi-teks-editor-${a}`);
                 });
             }
         }
@@ -2201,14 +2351,53 @@
             const cont = document.getElementById('bs-rows-container'); const idx = cont.children.length;
             const tr = document.createElement('tr');
             tr.innerHTML = `<td class="p-4 text-sm text-center font-bold text-slate-400 border-r border-slate-100 num-bs">${idx+1}</td>
-                <td class="p-4"><textarea class="bs-teks w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none resize-none h-12 focus:border-indigo-400 focus:bg-white shadow-inner transition" placeholder="Ketik pernyataan di sini...">${teks}</textarea></td>
+                <td class="p-4">
+                    <div id="bs-teks-editor-${idx}" class="mb-2 w-full bg-slate-50 border border-slate-200 rounded-xl shadow-inner transition focus-within:border-indigo-400 focus-within:bg-white" style="min-height: 80px;"></div>
+                    <input type="hidden" class="bs-teks" id="bs-teks-${idx}">
+                    <div class="mt-2 flex items-center gap-3">
+                        <label class="text-[9px] font-bold text-slate-500 uppercase tracking-widest bg-white border border-slate-200 px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-slate-100 transition shadow-sm flex items-center gap-1.5"><i class="fas fa-image text-indigo-400"></i> Gambar <input type="file" id="bs-img-${idx}" accept="image/*" class="hidden bs-img-input" onchange="previewBSImage(this, ${idx})"></label>
+                        <div id="preview-bs-container-${idx}" class="hidden relative inline-block border border-slate-200 rounded-lg p-1 bg-white shadow-sm"><img id="preview-bs-${idx}" src="" class="h-8 w-auto rounded object-contain bs-img-preview"><button type="button" onclick="removeBSImage(${idx})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[8px] flex items-center justify-center shadow hover:bg-red-600 border border-white"><i class="fas fa-times"></i></button></div>
+                    </div>
+                </td>
                 <td class="p-4 text-center border-l border-slate-100 bg-emerald-50/10 cursor-pointer hover:bg-emerald-50 transition" onclick="document.getElementById('cb_B_${idx}').click()"><input type="radio" id="cb_B_${idx}" name="kunci_bs_${idx}" value="B" class="bs-kunci w-5 h-5 cursor-pointer accent-emerald-500 pointer-events-none"></td>
                 <td class="p-4 text-center border-l border-slate-100 bg-red-50/10 cursor-pointer hover:bg-red-50 transition" onclick="document.getElementById('cb_S_${idx}').click()"><input type="radio" id="cb_S_${idx}" name="kunci_bs_${idx}" value="S" class="bs-kunci w-5 h-5 cursor-pointer accent-red-500 pointer-events-none"></td>
                 <td class="p-4 text-center"><button type="button" onclick="this.closest('tr').remove(); updateBSNum();" class="w-8 h-8 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition shadow-sm"><i class="fas fa-trash text-xs"></i></button></td>`;
             cont.appendChild(tr);
+            
+            // Initialize Quill for this new row
+            const quill = initQuill(`bs-teks-editor-${idx}`);
+            if (teks) {
+                 quill.root.innerHTML = teks;
+            }
         }
-        function updateBSNum() { const rows = document.getElementById('bs-rows-container').children; for(let i=0; i<rows.length; i++) { rows[i].querySelector('.num-bs').innerText = i+1; const radios = rows[i].querySelectorAll('.bs-kunci'); radios[0].name = `kunci_bs_${i}`; radios[1].name = `kunci_bs_${i}`; radios[0].id = `cb_B_${i}`; radios[1].id = `cb_S_${i}`; rows[i].querySelectorAll('td')[2].setAttribute('onclick', `document.getElementById('cb_B_${i}').click()`); rows[i].querySelectorAll('td')[3].setAttribute('onclick', `document.getElementById('cb_S_${i}').click()`); } }
+        
+        async function previewBSImage(input, idx) { if (input.files && input.files[0]) { const b64 = await fileToBase64(input.files[0]); document.getElementById(`preview-bs-${idx}`).src = b64; document.getElementById(`preview-bs-container-${idx}`).classList.remove('hidden'); } }
+        function removeBSImage(idx) { document.getElementById(`bs-img-${idx}`).value = ''; document.getElementById(`preview-bs-${idx}`).src = ''; document.getElementById(`preview-bs-container-${idx}`).classList.add('hidden'); }
 
+        function updateBSNum() { 
+            const rows = document.getElementById('bs-rows-container').children; 
+            for(let i=0; i<rows.length; i++) { 
+                rows[i].querySelector('.num-bs').innerText = i+1; 
+                const radios = rows[i].querySelectorAll('.bs-kunci'); 
+                radios[0].name = `kunci_bs_${i}`; radios[1].name = `kunci_bs_${i}`; 
+                radios[0].id = `cb_B_${i}`; radios[1].id = `cb_S_${i}`; 
+                rows[i].querySelectorAll('td')[2].setAttribute('onclick', `document.getElementById('cb_B_${i}').click()`); 
+                rows[i].querySelectorAll('td')[3].setAttribute('onclick', `document.getElementById('cb_S_${i}').click()`); 
+                // Re-bind image preview functions
+                const imgInput = rows[i].querySelector('.bs-img-input');
+                const imgContainer = rows[i].querySelector('div[id^="preview-bs-container-"]');
+                const imgPreview = rows[i].querySelector('.bs-img-preview');
+                const rmBtn = rows[i].querySelector('button[onclick^="removeBSImage"]');
+                if(imgInput) {
+                    imgInput.id = `bs-img-${i}`; imgInput.setAttribute('onchange', `previewBSImage(this, ${i})`);
+                    imgContainer.id = `preview-bs-container-${i}`;
+                    imgPreview.id = `preview-bs-${i}`;
+                    rmBtn.setAttribute('onclick', `removeBSImage(${i})`);
+                }
+            } 
+        }
+
+        // --- STREAMING_CHUNK:Match Making (Jodohkan) Form Logic... ---
         function addJodohRow(col, teks = '') {
             const abjadList = ['A','B','C','D','E','F','G','H'];
             if(col === 'kiri') {
@@ -2217,21 +2406,36 @@
                 div.innerHTML = `
                     <div class="flex gap-3 w-full items-start">
                         <div class="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 font-black flex items-center justify-center text-sm flex-shrink-0 mt-0.5 shadow-inner">${idx}</div>
-                        <textarea class="jodoh-kiri-teks w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none resize-none h-12 focus:border-indigo-400 focus:bg-white pr-10 shadow-inner transition" placeholder="Ketik kalimat pernyataan...">${teks}</textarea>
+                        <div class="flex-grow w-full">
+                            <div id="jodoh-kiri-editor-${idx}" class="w-full bg-slate-50 border border-slate-200 rounded-xl shadow-inner transition focus-within:border-indigo-400 focus-within:bg-white" style="min-height: 80px;"></div>
+                            <input type="hidden" class="jodoh-kiri-teks" id="jodoh-kiri-teks-${idx}">
+                        </div>
                     </div>
                     <div class="pl-14">
                         <select class="jodoh-kunci-dropdown bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 rounded-xl px-4 py-3 text-sm outline-none cursor-pointer w-full hover:bg-emerald-100 transition appearance-none shadow-sm"><option value="">-- Pilih Kunci Pasangan --</option></select>
                     </div>
                     <button type="button" onclick="this.parentElement.remove(); syncJodohOptions(); updateJodohKiriNum();" class="absolute top-5 right-5 w-7 h-7 bg-white border border-slate-200 rounded-lg text-slate-300 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition flex items-center justify-center shadow-sm"><i class="fas fa-trash text-xs"></i></button>`;
                 cont.appendChild(div);
+                const quill = initQuill(`jodoh-kiri-editor-${idx}`);
+                if (teks) quill.root.innerHTML = teks;
             } else {
                 const cont = document.getElementById('jodoh-kanan-container'); const idx = cont.children.length;
                 if(idx >= abjadList.length) return showToast("Maksimal 8 opsi.", "error");
                 const div = document.createElement('div'); div.className = "bg-white border border-slate-200 p-4 rounded-2xl flex items-center gap-4 shadow-sm relative jodoh-kanan-item group";
                 div.innerHTML = `<div class="w-12 h-12 rounded-xl border border-amber-300 text-amber-600 bg-amber-50 font-black flex items-center justify-center text-xl flex-shrink-0 abjad-kanan shadow-inner">${abjadList[idx]}</div>
-                    <textarea class="jodoh-kanan-teks w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none resize-none h-12 pr-10 focus:border-amber-400 focus:bg-white shadow-inner transition" placeholder="Ketik opsi pasangan acak..." onkeyup="syncJodohOptions()">${teks}</textarea>
+                    <div class="flex-grow w-full">
+                         <div id="jodoh-kanan-editor-${idx}" class="w-full bg-slate-50 border border-slate-200 rounded-xl shadow-inner transition focus-within:border-amber-400 focus-within:bg-white" style="min-height: 80px;"></div>
+                         <input type="hidden" class="jodoh-kanan-teks" id="jodoh-kanan-teks-${idx}">
+                    </div>
                     <button type="button" onclick="this.parentElement.remove(); reindexJodohKanan(); syncJodohOptions();" class="absolute top-1/2 -translate-y-1/2 right-5 w-7 h-7 bg-white border border-slate-200 rounded-lg text-slate-300 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition flex items-center justify-center shadow-sm"><i class="fas fa-trash text-xs"></i></button>`;
                 cont.appendChild(div);
+                
+                const quill = initQuill(`jodoh-kanan-editor-${idx}`);
+                if(teks) quill.root.innerHTML = teks;
+                
+                quill.on('text-change', function() {
+                    syncJodohOptions();
+                });
             }
             syncJodohOptions();
         }
@@ -2241,7 +2445,15 @@
             const abjadList = ['A','B','C','D','E','F','G','H']; const kanans = document.querySelectorAll('.jodoh-kanan-teks');
             document.querySelectorAll('.jodoh-kunci-dropdown').forEach(dd => {
                 const prevVal = dd.value; let html = '<option value="">-- Pilih Kunci Pasangan --</option>';
-                kanans.forEach((k, i) => { const txt = k.value.trim() ? k.value.substring(0,40)+'...' : `Opsi ${abjadList[i]}`; html += `<option value="${abjadList[i]}">${abjadList[i]} - ${txt}</option>`; });
+                kanans.forEach((k, i) => { 
+                    const editorId = `jodoh-kanan-editor-${i}`;
+                    let txt = '';
+                    if (quillEditors[editorId]) {
+                        txt = quillEditors[editorId].getText().trim();
+                    }
+                    txt = txt ? txt.substring(0,40)+'...' : `Opsi ${abjadList[i]}`; 
+                    html += `<option value="${abjadList[i]}">${abjadList[i]} - ${txt}</option>`; 
+                });
                 dd.innerHTML = html; dd.value = prevVal; 
             });
         }
@@ -2250,6 +2462,10 @@
             document.getElementById('form-edit-soal').reset(); document.getElementById('edit-id-soal').value = '';
             document.getElementById('title-form-soal').innerHTML = '<i class="fas fa-plus-circle mr-2 text-indigo-600"></i> Tambah Soal Baru';
             removeMainImage(); document.getElementById('pg-options-container').innerHTML = ''; document.getElementById('bs-rows-container').innerHTML = ''; document.getElementById('jodoh-kiri-container').innerHTML = ''; document.getElementById('jodoh-kanan-container').innerHTML = '';
+            
+            const mainEditor = initQuill('edit-teks-soal-editor');
+            mainEditor.root.innerHTML = '';
+
             changeJenisSoal();
             if(document.getElementById('edit-jenis-soal').value === 'BS') { addBSRow(); addBSRow(); addBSRow(); addBSRow(); }
             if(document.getElementById('edit-jenis-soal').value === 'JODOH') { for(let i=0; i<4; i++) { addJodohRow('kiri'); addJodohRow('kanan'); } }
@@ -2259,20 +2475,31 @@
         function editSoal(id) {
             const s = dbSoal.find(x=>x.id===id); bukaModalSoal();
             document.getElementById('title-form-soal').innerHTML = '<i class="fas fa-edit mr-2 text-indigo-600"></i> Edit Soal';
-            document.getElementById('edit-id-soal').value = s.id; document.getElementById('edit-jenis-soal').value = s.jenis; document.getElementById('edit-teks-soal').value = s.teks;
+            document.getElementById('edit-id-soal').value = s.id; document.getElementById('edit-jenis-soal').value = s.jenis; 
+            
+            const mainEditor = initQuill('edit-teks-soal-editor');
+            mainEditor.root.innerHTML = s.teks;
+
             if(s.gambar && s.gambar.length > 10) { document.getElementById('preview-main-img').src = s.gambar; document.getElementById('preview-main-img-container').classList.remove('hidden'); }
             changeJenisSoal();
             
             setTimeout(() => {
                 if (s.jenis === 'PG' || s.jenis === 'PGK') {
                     s.opsi.forEach(opt => {
-                        document.getElementById(`opsi-teks-${opt.id}`).value = opt.teks;
+                        const optEditor = initQuill(`opsi-teks-editor-${opt.id}`);
+                        optEditor.root.innerHTML = opt.teks;
+                        
                         if(opt.img && opt.img.length > 10) { document.getElementById(`preview-opsi-${opt.id}`).src = opt.img; document.getElementById(`preview-opsi-container-${opt.id}`).classList.remove('hidden'); }
                         for(let r of document.getElementsByName('kunci_pg')) { if(r.value === opt.id && s.jawabanBenar.includes(opt.id)) r.checked = true; }
                     });
                 } else if (s.jenis === 'BS') {
                     document.getElementById('bs-rows-container').innerHTML = '';
-                    s.pernyataan.forEach((p, idx) => { addBSRow(p.teks); if(p.kunci === 'B') document.getElementById(`cb_B_${idx}`).checked = true; if(p.kunci === 'S') document.getElementById(`cb_S_${idx}`).checked = true; });
+                    s.pernyataan.forEach((p, idx) => { 
+                        addBSRow(p.teks); 
+                        if(p.kunci === 'B') document.getElementById(`cb_B_${idx}`).checked = true; 
+                        if(p.kunci === 'S') document.getElementById(`cb_S_${idx}`).checked = true; 
+                        if(p.img && p.img.length > 10) { document.getElementById(`preview-bs-${idx}`).src = p.img; document.getElementById(`preview-bs-container-${idx}`).classList.remove('hidden'); }
+                    });
                 } else if (s.jenis === 'JODOH') {
                     document.getElementById('jodoh-kiri-container').innerHTML = ''; document.getElementById('jodoh-kanan-container').innerHTML = '';
                     s.kanan.forEach(kn => addJodohRow('kanan', kn.teks));
@@ -2286,12 +2513,19 @@
             e.preventDefault(); const id = document.getElementById('edit-id-soal').value; const jenis = document.getElementById('edit-jenis-soal').value;
             const btn = document.getElementById('btn-save-soal'); btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...'; btn.disabled = true;
 
+            const mainEditor = initQuill('edit-teks-soal-editor');
+            const teksSoal = mainEditor.root.innerHTML;
+
             let gambarUtama = getBase64(document.getElementById('preview-main-img'));
-            let newData = { jenis: jenis, teks: document.getElementById('edit-teks-soal').value, gambar: gambarUtama, paketId: adminAktifPaketId };
+            let newData = { jenis: jenis, teks: teksSoal, gambar: gambarUtama, paketId: adminAktifPaketId };
 
             if(jenis === 'PG' || jenis === 'PGK') {
                 const opsi = []; const kunci = [];
-                for (const a of ['A','B','C','D','E']) { let imgOpt = getBase64(document.getElementById(`preview-opsi-${a}`)); opsi.push({id: a, teks: document.getElementById(`opsi-teks-${a}`).value, img: imgOpt}); }
+                for (const a of ['A','B','C','D','E']) { 
+                    let imgOpt = getBase64(document.getElementById(`preview-opsi-${a}`)); 
+                    const optEditor = initQuill(`opsi-teks-editor-${a}`);
+                    opsi.push({id: a, teks: optEditor.root.innerHTML, img: imgOpt}); 
+                }
                 for(let r of document.getElementsByName('kunci_pg')) { if(r.checked) kunci.push(r.value); }
                 if(kunci.length === 0) { btn.innerHTML = '<i class="fas fa-save"></i> Simpan ke Bank Soal'; btn.disabled = false; return showToast("Pilih minimal 1 kunci jawaban!", "error"); }
                 newData.opsi = opsi; newData.jawabanBenar = kunci;
@@ -2304,7 +2538,10 @@
                     let kunci = ''; const rbs = rows[i].querySelectorAll('.bs-kunci');
                     if(rbs[0].checked) kunci = 'B'; if(rbs[1].checked) kunci = 'S';
                     if(!kunci) { btn.innerHTML = '<i class="fas fa-save"></i> Simpan ke Bank Soal'; btn.disabled = false; return showToast(`Baris ke-${i+1} belum diberi kunci.`, "error"); }
-                    p.push({teks: rows[i].querySelector('.bs-teks').value, kunci: kunci});
+                    
+                    const bsEditor = initQuill(`bs-teks-editor-${i}`);
+                    let imgBS = getBase64(rows[i].querySelector('.bs-img-preview'));
+                    p.push({teks: bsEditor.root.innerHTML, img: imgBS, kunci: kunci});
                 }
                 newData.pernyataan = p;
             }
@@ -2312,12 +2549,20 @@
                 const kiris = document.querySelectorAll('.jodoh-kiri-teks'); const kanans = document.querySelectorAll('.jodoh-kanan-teks'); const dropdowns = document.querySelectorAll('.jodoh-kunci-dropdown');
                 if(kiris.length===0 || kanans.length===0) { btn.innerHTML = '<i class="fas fa-save"></i> Simpan ke Bank Soal'; btn.disabled = false; return showToast("Pernyataan dan Pilihan tidak boleh kosong", "error"); }
                 const kl = []; const kn = []; const kuncis = {}; let err = false;
-                kanans.forEach((k,i) => kn.push({id: ['A','B','C','D','E','F','G','H'][i], teks: k.value}));
-                kiris.forEach((k,i) => {
-                    const id = 'L'+(i+1); kl.push({id: id, teks: k.value});
+                
+                for(let i=0; i<kanans.length; i++){
+                     const kananEditor = initQuill(`jodoh-kanan-editor-${i}`);
+                     kn.push({id: ['A','B','C','D','E','F','G','H'][i], teks: kananEditor.root.innerHTML});
+                }
+
+                for(let i=0; i<kiris.length; i++){
+                    const id = 'L'+(i+1); 
+                    const kiriEditor = initQuill(`jodoh-kiri-editor-${i+1}`); // Note: addJodohRow('kiri') starts index from 1
+                    kl.push({id: id, teks: kiriEditor.root.innerHTML});
                     if(!dropdowns[i].value) { err = true; showToast(`Baris kiri ke-${i+1} belum diberi pasangan kunci.`, "error"); }
                     kuncis[id] = dropdowns[i].value;
-                });
+                }
+
                 if(err) { btn.innerHTML = '<i class="fas fa-save"></i> Simpan ke Bank Soal'; btn.disabled = false; return; }
                 newData.kiri = kl; newData.kanan = kn; newData.kunciJodoh = kuncis;
             }
