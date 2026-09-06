@@ -551,7 +551,6 @@
                         </div>
                         
                         <form onsubmit="buatToken(event)" class="space-y-5 bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-inner">
-                            <div><label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Pilih Paket Ujian Tujuan</label><select id="tokenMapel" class="w-full border border-slate-200 rounded-xl px-4 py-3.5 bg-white outline-none text-sm font-semibold shadow-sm cursor-pointer"></select></div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Jenis Token Khusus</label>
                                 <select id="tokenJenis" class="w-full border border-slate-200 rounded-xl px-4 py-3.5 bg-white outline-none text-sm font-semibold text-slate-700 cursor-pointer shadow-sm">
@@ -559,14 +558,14 @@
                                     <option value="Buka_Blokir">Buka Blokir (Reset Kecurangan 3x - Sekali Pakai)</option>
                                 </select>
                             </div>
-                            <button type="submit" class="w-full bg-[#0f172a] text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-[#1e293b] active:scale-95 transition-all">Generate Token Khusus</button>
+                            <button type="submit" class="w-full bg-[#0f172a] text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-[#1e293b] active:scale-95 transition-all">Generate 15 Token</button>
                         </form>
                         
                         <div class="mt-8 border-t border-slate-100 pt-6">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="font-black text-slate-800">Daftar Token Khusus Aktif</h3>
                             </div>
-                            <div class="overflow-x-auto"><table class="w-full text-left text-xs whitespace-nowrap"><thead class="text-slate-400 border-b border-slate-200 uppercase tracking-widest text-[10px]"><tr><th class="pb-3 px-2">Token</th><th class="pb-3 px-2">Paket Tujuan</th><th class="pb-3 px-2">Tipe & Status</th><th class="pb-3 px-2 text-right">Aksi</th></tr></thead><tbody id="tbody-token" class="divide-y divide-slate-100 font-medium text-slate-700"></tbody></table></div>
+                            <div class="overflow-x-auto"><table class="w-full text-left text-xs whitespace-nowrap"><thead class="text-slate-400 border-b border-slate-200 uppercase tracking-widest text-[10px]"><tr><th class="pb-3 px-2">Token</th><th class="pb-3 px-2">Tipe & Status</th><th class="pb-3 px-2 text-right">Aksi</th></tr></thead><tbody id="tbody-token" class="divide-y divide-slate-100 font-medium text-slate-700"></tbody></table></div>
                         </div>
                     </div>
                 </div>
@@ -685,7 +684,7 @@
                     <!-- 2. TEKS PERTANYAAN UTAMA & GAMBAR -->
                     <div class="mb-8 bg-white p-6 rounded-[1.5rem] border border-slate-200 shadow-sm">
                         <label class="block text-xs font-black text-slate-600 uppercase tracking-widest mb-4"><i class="fas fa-pen mr-2 text-slate-400"></i> 2. Narasi / Pertanyaan Utama</label>
-                        <div id="edit-teks-soal-editor" class="mb-2"></div>
+                        <div id="edit-teks-soal-editor" class="mb-2 w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 text-sm outline-none focus-within:border-[#0f172a] focus-within:ring-1 focus-within:ring-[#0f172a] focus-within:bg-white min-h-[120px] shadow-inner transition"></div>
                         <input type="hidden" id="edit-teks-soal" required>
                         
                         <!-- Upload Gambar Soal -->
@@ -1430,7 +1429,6 @@
                             </div>
                             <div class="flex flex-col w-full">
                                 <div class="flex items-start">
-                                    <span class="font-black text-slate-800 text-sm mr-2 mt-0.5">${opt.id}.</span>
                                     <span class="text-slate-600 font-medium text-sm leading-relaxed">${opt.teks}</span>
                                 </div>
                                 ${imgHtml}
@@ -1921,12 +1919,12 @@
 
                 if (s.jenis === 'PG') {
                     const stuAns = ans || '-'; const corAns = s.jawabanBenar[0]; isFullyCorrect = stuAns === corAns;
-                    detailHtml = `<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4"><div class="p-4 rounded-xl border ${isFullyCorrect ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Jawaban Siswa</p><p class="font-bold text-sm ${isFullyCorrect ? 'text-emerald-700' : 'text-red-700'}">${stuAns !== '-' ? `${stuAns}. ${getOptText(stuAns)}` : '<span class="italic font-medium">Tidak Dijawab</span>'}</p></div><div class="p-4 rounded-xl border bg-slate-50 border-slate-200 shadow-sm"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Kunci Jawaban</p><p class="font-bold text-sm text-slate-700">${corAns}. ${getOptText(corAns)}</p></div></div>`;
+                    detailHtml = `<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4"><div class="p-4 rounded-xl border ${isFullyCorrect ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Jawaban Siswa</p><p class="font-bold text-sm ${isFullyCorrect ? 'text-emerald-700' : 'text-red-700'}">${stuAns !== '-' ? `${getOptText(stuAns)}` : '<span class="italic font-medium">Tidak Dijawab</span>'}</p></div><div class="p-4 rounded-xl border bg-slate-50 border-slate-200 shadow-sm"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Kunci Jawaban</p><p class="font-bold text-sm text-slate-700">${getOptText(corAns)}</p></div></div>`;
                 } 
                 else if (s.jenis === 'PGK') {
                     const stuAnsArr = Array.isArray(ans) ? ans : []; const corAnsArr = s.jawabanBenar || [];
                     isFullyCorrect = JSON.stringify([...stuAnsArr].sort()) === JSON.stringify([...corAnsArr].sort());
-                    detailHtml = `<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4"><div class="p-4 rounded-xl border ${isFullyCorrect ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Jawaban Siswa</p><ul class="space-y-1.5 text-sm font-bold ${isFullyCorrect ? 'text-emerald-700' : 'text-red-700'}">${stuAnsArr.length ? stuAnsArr.map(x=> `<li><i class="fas fa-check-square mr-1 opacity-70"></i> ${x}. ${getOptText(x)}</li>`).join('') : '<li class="italic font-medium">Tidak Dijawab</li>'}</ul></div><div class="p-4 rounded-xl border bg-slate-50 border-slate-200 shadow-sm"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Kunci Jawaban Benar</p><ul class="space-y-1.5 text-sm font-bold text-slate-700">${corAnsArr.map(x=> `<li><i class="fas fa-check-square mr-1 opacity-70 text-emerald-500"></i> ${x}. ${getOptText(x)}</li>`).join('')}</ul></div></div>`;
+                    detailHtml = `<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4"><div class="p-4 rounded-xl border ${isFullyCorrect ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Jawaban Siswa</p><ul class="space-y-1.5 text-sm font-bold ${isFullyCorrect ? 'text-emerald-700' : 'text-red-700'}">${stuAnsArr.length ? stuAnsArr.map(x=> `<li><i class="fas fa-check-square mr-1 opacity-70"></i> ${getOptText(x)}</li>`).join('') : '<li class="italic font-medium">Tidak Dijawab</li>'}</ul></div><div class="p-4 rounded-xl border bg-slate-50 border-slate-200 shadow-sm"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Kunci Jawaban Benar</p><ul class="space-y-1.5 text-sm font-bold text-slate-700">${corAnsArr.map(x=> `<li><i class="fas fa-check-square mr-1 opacity-70 text-emerald-500"></i> ${getOptText(x)}</li>`).join('')}</ul></div></div>`;
                 }
                 else if (s.jenis === 'BS') {
                     const stuAnsObj = ans || {}; let correctCount = 0; let bsRows = '';
@@ -1988,7 +1986,6 @@
         function tutupModalPDF() { document.getElementById('modal-pdf').classList.add('hidden'); }
         function downloadPDF() { const element = document.getElementById('pdf-content-area'); const opt = { margin:0.4, filename:'Laporan_Nilai_CBT.pdf', image:{type:'jpeg', quality:0.98}, html2canvas:{scale:2, useCORS:true}, jsPDF:{unit:'in', format:'a4', orientation:'portrait'} }; html2pdf().set(opt).from(element).save().then(()=>{showToast("PDF Didownload", "success");}).catch(err => { window.print(); }); }
 
-        // --- STREAMING_CHUNK:Admin Forms and Settings Setup... ---
         // --- ADMIN: DATA GURU (SUPERADMIN ONLY) ---
         function renderTableAdmin() {
             const tbody = document.getElementById('tbody-admin-list'); tbody.innerHTML = '';
@@ -2119,26 +2116,28 @@
 
         // --- ADMIN: TOKEN (SUPERADMIN ONLY) ---
         function renderFormToken() {
-            const sel = document.getElementById('tokenMapel'); sel.innerHTML = '';
-            dbPaket.filter(p=>p.aktif).forEach(p => sel.innerHTML += `<option value="${p.id}">${p.nama} (${p.mapel})</option>`);
-            
             const tbody = document.getElementById('tbody-token'); tbody.innerHTML = '';
             const tSusulan = dbToken.filter(t => t.jenis !== 'Reguler'); // Hanya tampilkan token khusus
-            if(tSusulan.length === 0) return tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500">Tidak ada token khusus aktif</td></tr>';
+            if(tSusulan.length === 0) return tbody.innerHTML = '<tr><td colspan="3" class="p-6 text-center text-slate-500">Tidak ada token khusus aktif</td></tr>';
 
             tSusulan.forEach(t => {
-                const pkt = dbPaket.find(p=>p.id===t.paketId);
                 const stat = t.jenis === 'Susulan' ? '<span class="bg-amber-50 text-amber-600 px-3 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase border border-amber-100"><i class="fas fa-history mr-1"></i> Susulan</span>' : '<span class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase border border-red-100"><i class="fas fa-unlock-alt mr-1"></i> Buka Blokir</span>';
                 const usedInfo = t.isUsed ? `<span class="block mt-1.5 text-[10px] text-red-500 font-bold"><i class="fas fa-user-lock"></i> Terpakai: ${t.usedBy}</span>` : `<span class="block mt-1.5 text-[10px] text-emerald-500 font-bold"><i class="fas fa-check"></i> Belum Dipakai</span>`;
                 
-                tbody.innerHTML += `<tr class="hover:bg-slate-50/50 transition border-b border-slate-50"><td class="py-4 px-2"><span class="font-mono font-black text-[#0f172a] text-sm tracking-[0.2em] bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm">${t.token}</span></td><td class="py-4 px-2 text-xs font-bold text-slate-500">${pkt?pkt.nama:'-'}</td><td class="py-4 px-2">${stat} ${usedInfo}</td><td class="py-4 px-2 text-right"><button onclick="bukaAdminConfirm('Hapus Token?', 'Token tidak akan bisa digunakan lagi.', () => { dbToken = dbToken.filter(x=>String(x.token).toUpperCase() !== '${String(t.token).toUpperCase()}'); fetchGAS('hapusToken', {token: '${String(t.token).toUpperCase()}'}); renderFormToken(); })" class="text-red-500 hover:text-white bg-red-50 hover:bg-red-500 w-8 h-8 inline-flex items-center justify-center rounded-lg transition text-xs border border-red-100 shadow-sm"><i class="fas fa-trash"></i></button></td></tr>`;
+                tbody.innerHTML += `<tr class="hover:bg-slate-50/50 transition border-b border-slate-50"><td class="py-4 px-2"><span class="font-mono font-black text-[#0f172a] text-sm tracking-[0.2em] bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm">${t.token}</span></td><td class="py-4 px-2">${stat} ${usedInfo}</td><td class="py-4 px-2 text-right"><button onclick="bukaAdminConfirm('Hapus Token?', 'Token tidak akan bisa digunakan lagi.', () => { dbToken = dbToken.filter(x=>String(x.token).toUpperCase() !== '${String(t.token).toUpperCase()}'); fetchGAS('hapusToken', {token: '${String(t.token).toUpperCase()}'}); renderFormToken(); })" class="text-red-500 hover:text-white bg-red-50 hover:bg-red-500 w-8 h-8 inline-flex items-center justify-center rounded-lg transition text-xs border border-red-100 shadow-sm"><i class="fas fa-trash"></i></button></td></tr>`;
             });
         }
         function buatToken(e) { 
-            e.preventDefault(); if(dbPaket.length === 0) return showToast("Buat Paket Ujian terlebih dahulu!", "error");
-            const newToken = Math.random().toString(36).substr(2,6).toUpperCase();
-            const tokenData = { token: newToken, paketId: document.getElementById('tokenMapel').value, jenis: document.getElementById('tokenJenis').value, isUsed: false, usedBy: null };
-            dbToken.push(tokenData); fetchGAS("simpanToken", tokenData); renderFormToken(); showToast(`Token berhasil digenerate`, "success"); 
+            e.preventDefault();
+            const jenisToken = document.getElementById('tokenJenis').value;
+            for(let i=0; i<15; i++) {
+                const newToken = Math.random().toString(36).substr(2,6).toUpperCase();
+                const tokenData = { token: newToken, paketId: 'ALL', jenis: jenisToken, isUsed: false, usedBy: null };
+                dbToken.push(tokenData);
+                fetchGAS("simpanToken", tokenData);
+            }
+            renderFormToken();
+            showToast(`15 Token berhasil digenerate`, "success"); 
         }
 
         // --- STREAMING_CHUNK:Exam Package Logic... ---
@@ -2259,7 +2258,6 @@
             document.getElementById('modal-crud').classList.remove('hidden');
         }
 
-        // --- STREAMING_CHUNK:Question Content Management... ---
         function bukaListSoal(paketId) {
             adminAktifPaketId = paketId;
             document.getElementById('panel-paket-soal').classList.add('hidden'); document.getElementById('panel-list-soal').classList.remove('hidden');
@@ -2270,7 +2268,12 @@
             if(soalPkt.length===0) return list.innerHTML = '<div class="p-12 border border-dashed border-slate-300 rounded-[2rem] bg-slate-50 text-center text-slate-500 font-medium">Belum ada butir soal di paket ini.</div>';
             
             soalPkt.forEach((s, idx) => {
-                let txt = s.teks.length > 80 ? s.teks.substring(0,80)+'...' : s.teks;
+                // Strip HTML tags for preview text
+                let tempDiv = document.createElement("div");
+                tempDiv.innerHTML = s.teks;
+                let plainTeks = tempDiv.textContent || tempDiv.innerText || "";
+                let txt = plainTeks.length > 80 ? plainTeks.substring(0,80)+'...' : plainTeks;
+
                 list.innerHTML += `
                 <div class="bg-white border border-slate-200 rounded-[1.5rem] p-5 flex items-center justify-between gap-4 shadow-sm hover:shadow-md transition group">
                     <div class="flex gap-4 items-start w-full overflow-hidden">
@@ -2330,8 +2333,7 @@
                         <div class="pt-3"><input type="${jenis==='PGK'?'checkbox':'radio'}" name="kunci_pg" value="${a}" class="w-5 h-5 cursor-pointer accent-emerald-500"></div>
                         <div class="w-12 h-12 rounded-xl bg-white flex items-center justify-center font-black text-indigo-700 text-lg border border-slate-200 shadow-sm flex-shrink-0 group-hover:border-indigo-300">${a}</div>
                         <div class="flex-grow flex flex-col gap-3 w-full overflow-hidden">
-                            <div id="opsi-teks-editor-${a}" class="mb-2"></div>
-                            <input type="hidden" id="opsi-teks-${a}">
+                            <div id="opsi-teks-editor-${a}" class="mb-2 w-full bg-white border border-slate-200 rounded-xl shadow-inner transition focus-within:border-indigo-400 focus-within:bg-white" style="min-height: 80px;"></div>
                             <div class="flex items-center gap-3">
                                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-white border border-slate-200 px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-100 transition shadow-sm flex items-center gap-1.5"><i class="fas fa-image text-indigo-400"></i> Gambar <input type="file" id="opsi-img-${a}" accept="image/*" class="hidden" onchange="previewOpsiImage(this, '${a}')"></label>
                                 <div id="preview-opsi-container-${a}" class="hidden relative inline-block border border-slate-200 rounded-lg p-1 bg-white shadow-sm"><img id="preview-opsi-${a}" src="" class="h-10 w-auto rounded object-contain"><button type="button" onclick="removeOpsiImage('${a}')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-[10px] flex items-center justify-center shadow hover:bg-red-600 border border-white"><i class="fas fa-times"></i></button></div>
@@ -2353,7 +2355,6 @@
             tr.innerHTML = `<td class="p-4 text-sm text-center font-bold text-slate-400 border-r border-slate-100 num-bs">${idx+1}</td>
                 <td class="p-4">
                     <div id="bs-teks-editor-${idx}" class="mb-2 w-full bg-slate-50 border border-slate-200 rounded-xl shadow-inner transition focus-within:border-indigo-400 focus-within:bg-white" style="min-height: 80px;"></div>
-                    <input type="hidden" class="bs-teks" id="bs-teks-${idx}">
                     <div class="mt-2 flex items-center gap-3">
                         <label class="text-[9px] font-bold text-slate-500 uppercase tracking-widest bg-white border border-slate-200 px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-slate-100 transition shadow-sm flex items-center gap-1.5"><i class="fas fa-image text-indigo-400"></i> Gambar <input type="file" id="bs-img-${idx}" accept="image/*" class="hidden bs-img-input" onchange="previewBSImage(this, ${idx})"></label>
                         <div id="preview-bs-container-${idx}" class="hidden relative inline-block border border-slate-200 rounded-lg p-1 bg-white shadow-sm"><img id="preview-bs-${idx}" src="" class="h-8 w-auto rounded object-contain bs-img-preview"><button type="button" onclick="removeBSImage(${idx})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[8px] flex items-center justify-center shadow hover:bg-red-600 border border-white"><i class="fas fa-times"></i></button></div>
@@ -2364,7 +2365,6 @@
                 <td class="p-4 text-center"><button type="button" onclick="this.closest('tr').remove(); updateBSNum();" class="w-8 h-8 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition shadow-sm"><i class="fas fa-trash text-xs"></i></button></td>`;
             cont.appendChild(tr);
             
-            // Initialize Quill for this new row
             const quill = initQuill(`bs-teks-editor-${idx}`);
             if (teks) {
                  quill.root.innerHTML = teks;
@@ -2408,7 +2408,6 @@
                         <div class="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 font-black flex items-center justify-center text-sm flex-shrink-0 mt-0.5 shadow-inner">${idx}</div>
                         <div class="flex-grow w-full">
                             <div id="jodoh-kiri-editor-${idx}" class="w-full bg-slate-50 border border-slate-200 rounded-xl shadow-inner transition focus-within:border-indigo-400 focus-within:bg-white" style="min-height: 80px;"></div>
-                            <input type="hidden" class="jodoh-kiri-teks" id="jodoh-kiri-teks-${idx}">
                         </div>
                     </div>
                     <div class="pl-14">
@@ -2425,7 +2424,6 @@
                 div.innerHTML = `<div class="w-12 h-12 rounded-xl border border-amber-300 text-amber-600 bg-amber-50 font-black flex items-center justify-center text-xl flex-shrink-0 abjad-kanan shadow-inner">${abjadList[idx]}</div>
                     <div class="flex-grow w-full">
                          <div id="jodoh-kanan-editor-${idx}" class="w-full bg-slate-50 border border-slate-200 rounded-xl shadow-inner transition focus-within:border-amber-400 focus-within:bg-white" style="min-height: 80px;"></div>
-                         <input type="hidden" class="jodoh-kanan-teks" id="jodoh-kanan-teks-${idx}">
                     </div>
                     <button type="button" onclick="this.parentElement.remove(); reindexJodohKanan(); syncJodohOptions();" class="absolute top-1/2 -translate-y-1/2 right-5 w-7 h-7 bg-white border border-slate-200 rounded-lg text-slate-300 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition flex items-center justify-center shadow-sm"><i class="fas fa-trash text-xs"></i></button>`;
                 cont.appendChild(div);
@@ -2442,15 +2440,18 @@
         function updateJodohKiriNum() { const cont = document.getElementById('jodoh-kiri-container').children; for(let i=0; i<cont.length; i++) { cont[i].querySelector('div > div').innerText = i+1; } }
         function reindexJodohKanan() { const abjadList = ['A','B','C','D','E','F','G','H']; document.querySelectorAll('.jodoh-kanan-item').forEach((item, i) => { item.querySelector('.abjad-kanan').innerText = abjadList[i]; }); }
         function syncJodohOptions() {
-            const abjadList = ['A','B','C','D','E','F','G','H']; const kanans = document.querySelectorAll('.jodoh-kanan-teks');
+            const abjadList = ['A','B','C','D','E','F','G','H'];
             document.querySelectorAll('.jodoh-kunci-dropdown').forEach(dd => {
                 const prevVal = dd.value; let html = '<option value="">-- Pilih Kunci Pasangan --</option>';
-                kanans.forEach((k, i) => { 
+                const kananEditors = [];
+                for(let i=0; i<8; i++){
                     const editorId = `jodoh-kanan-editor-${i}`;
-                    let txt = '';
-                    if (quillEditors[editorId]) {
-                        txt = quillEditors[editorId].getText().trim();
+                    if(quillEditors[editorId]){
+                        kananEditors.push(quillEditors[editorId]);
                     }
+                }
+                kananEditors.forEach((quill, i) => { 
+                    let txt = quill.getText().trim();
                     txt = txt ? txt.substring(0,40)+'...' : `Opsi ${abjadList[i]}`; 
                     html += `<option value="${abjadList[i]}">${abjadList[i]} - ${txt}</option>`; 
                 });
@@ -2546,23 +2547,32 @@
                 newData.pernyataan = p;
             }
             else if (jenis === 'JODOH') {
-                const kiris = document.querySelectorAll('.jodoh-kiri-teks'); const kanans = document.querySelectorAll('.jodoh-kanan-teks'); const dropdowns = document.querySelectorAll('.jodoh-kunci-dropdown');
-                if(kiris.length===0 || kanans.length===0) { btn.innerHTML = '<i class="fas fa-save"></i> Simpan ke Bank Soal'; btn.disabled = false; return showToast("Pernyataan dan Pilihan tidak boleh kosong", "error"); }
+                const dropdowns = document.querySelectorAll('.jodoh-kunci-dropdown');
+                
                 const kl = []; const kn = []; const kuncis = {}; let err = false;
                 
-                for(let i=0; i<kanans.length; i++){
-                     const kananEditor = initQuill(`jodoh-kanan-editor-${i}`);
-                     kn.push({id: ['A','B','C','D','E','F','G','H'][i], teks: kananEditor.root.innerHTML});
+                let kananCount = 0;
+                for(let i=0; i<8; i++){
+                    if(quillEditors[`jodoh-kanan-editor-${i}`]){
+                        const kananEditor = quillEditors[`jodoh-kanan-editor-${i}`];
+                        kn.push({id: ['A','B','C','D','E','F','G','H'][kananCount], teks: kananEditor.root.innerHTML});
+                        kananCount++;
+                    }
                 }
 
-                for(let i=0; i<kiris.length; i++){
-                    const id = 'L'+(i+1); 
-                    const kiriEditor = initQuill(`jodoh-kiri-editor-${i+1}`); // Note: addJodohRow('kiri') starts index from 1
-                    kl.push({id: id, teks: kiriEditor.root.innerHTML});
-                    if(!dropdowns[i].value) { err = true; showToast(`Baris kiri ke-${i+1} belum diberi pasangan kunci.`, "error"); }
-                    kuncis[id] = dropdowns[i].value;
+                let kiriCount = 0;
+                for(let i=1; i<=8; i++){
+                    if(quillEditors[`jodoh-kiri-editor-${i}`]){
+                        const id = 'L'+(kiriCount+1); 
+                        const kiriEditor = quillEditors[`jodoh-kiri-editor-${i}`];
+                        kl.push({id: id, teks: kiriEditor.root.innerHTML});
+                        if(!dropdowns[kiriCount].value) { err = true; showToast(`Baris kiri ke-${kiriCount+1} belum diberi pasangan kunci.`, "error"); }
+                        kuncis[id] = dropdowns[kiriCount].value;
+                        kiriCount++;
+                    }
                 }
 
+                if(kl.length===0 || kn.length===0) { btn.innerHTML = '<i class="fas fa-save"></i> Simpan ke Bank Soal'; btn.disabled = false; return showToast("Pernyataan dan Pilihan tidak boleh kosong", "error"); }
                 if(err) { btn.innerHTML = '<i class="fas fa-save"></i> Simpan ke Bank Soal'; btn.disabled = false; return; }
                 newData.kiri = kl; newData.kanan = kn; newData.kunciJodoh = kuncis;
             }
