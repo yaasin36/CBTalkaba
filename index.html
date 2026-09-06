@@ -551,15 +551,21 @@
                         </div>
                         
                         <form onsubmit="buatToken(event)" class="space-y-5 bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-inner">
-                            <div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Pilih Paket Ujian</label>
+                                <select id="tokenPaketId" required class="w-full border border-slate-200 rounded-xl px-4 py-3.5 bg-white outline-none text-sm font-semibold text-slate-700 cursor-pointer shadow-sm">
+                                    <option value="" disabled selected>-- Pilih Paket Ujian --</option>
+                                </select>
+                            </div>
+                            <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Jenis Token Khusus</label>
                                 <select id="tokenJenis" class="w-full border border-slate-200 rounded-xl px-4 py-3.5 bg-white outline-none text-sm font-semibold text-slate-700 cursor-pointer shadow-sm">
                                     <option value="Susulan">Susulan (Siswa Terlambat - Sekali Pakai)</option>
-                                    <option value="Buka_Blokir">Buka Blokir (Reset Kecurangan 3x - Sekali Pakai)</option>
+                                    <option value="Buka_Blokir">Buka Blokir (Kecurangan 3x & 4x - Sekali Pakai)</option>
                                 </select>
                             </div>
-                            <button type="submit" class="w-full bg-[#0f172a] text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-[#1e293b] active:scale-95 transition-all">Generate 15 Token</button>
-                        </form>
+                            <button type="submit" class="w-full bg-[#0f172a] text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-[#1e293b] active:scale-95 transition-all">Generate 10 Token</button>
+                        </form>
                         
                         <div class="mt-8 border-t border-slate-100 pt-6">
                             <div class="flex justify-between items-center mb-4">
@@ -958,16 +964,16 @@
         // FUNGSI INIT ONLOAD
         window.onload = async () => {
             // MOCK DATA: Disuntikkan sebagai fallback jika GAS belum sinkron
-            dbAdmin = [
-                {id: 1, nama: "Ketua Panitia", username: "superadmin", password: "123", role: "superadmin", mapel: ""}
-            ];
-            dbSiswa = [
-                {id: "S01", nama: "Siswa Tester 1", username: "siswa1", password: "123", kelas: "XII-A", statusUjian: false, cheatCount: 0, isBlocked: false}
-            ];
-            dbPaket = [
-                {id: "P01", nama: "UAS Informatika", mapel: "Informatika", durasi: 90, waktuMulai: toIsoStringLocal(new Date(Date.now() - 3600000)), batasWaktu: toIsoStringLocal(new Date(Date.now() + 7200000)), targetKelas: ["XII-A", "XII-B"], aktif: true}
-            ];
-            dbToken = [{token: "ABCDEF", paketId: "P01", jenis: "Reguler", isUsed: false}];
+            // dbAdmin = [
+            //     {id: 1, nama: "Ketua Panitia", username: "superadmin", password: "123", role: "superadmin", mapel: ""}
+            // ];
+            // dbSiswa = [
+            //     {id: "S01", nama: "Siswa Tester 1", username: "siswa1", password: "123", kelas: "XII-A", statusUjian: false, cheatCount: 0, isBlocked: false}
+            // ];
+            // dbPaket = [
+            //     {id: "P01", nama: "UAS Informatika", mapel: "Informatika", durasi: 90, waktuMulai: toIsoStringLocal(new Date(Date.now() - 3600000)), batasWaktu: toIsoStringLocal(new Date(Date.now() + 7200000)), targetKelas: ["XII-A", "XII-B"], aktif: true}
+            // ];
+            // dbToken = [{token: "ABCDEF", paketId: "P01", jenis: "Reguler", isUsed: false}];
 
             // CEK SESSION LAMA
             const savedSession = sessionStorage.getItem('cbt_user');
@@ -986,38 +992,39 @@
                     setTimeout(() => renderDashboardAdmin(), 300);
                     setInterval(() => syncAdminRealtime(false), 15000);
                 } else if(parsed.type === 'siswa') {
-                    currentSiswa = parsed.data;
+                    // --- PERBAIKAN: Ambil data fresh dari database agar status blokir terbaca ---
+                    const freshSiswa = dbSiswa.find(s => String(s.id) === String(parsed.data.id) || String(s.username) === String(parsed.data.username));
+                    currentSiswa = freshSiswa || parsed.data;
+                    sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
                     
-                    // Check if there is an active exam
-                    let activeExamFound = false;
-                    for (let i = 0; i < sessionStorage.length; i++) {
-                        const key = sessionStorage.key(i);
-                        if (key && key.startsWith(`exam_state_${currentSiswa.id}_`)) {
-                            const paketId = key.split('_')[3];
-                            const savedStateStr = sessionStorage.getItem(key);
-                            if (savedStateStr) {
-                                try {
-                                    const savedState = JSON.parse(savedStateStr);
-                                    if (savedState && savedState.waktuTersisa > 0) {
-                                        // Found an active exam, resume it
-                                        tempPaketToStart = dbPaket.find(p => p.id === paketId);
-                                        if (tempPaketToStart) {
-                                            activeExamFound = true;
-                                            mulaiUjian(false); // Resume exam
-                                            break;
-                                        }
-                                    }
-                                } catch (e) {
-                                    console.error("Failed to parse saved state on load:", e);
-                                }
-                            }
-                        }
-                    }
+                    if (currentSiswa.isBlocked) {
+                        document.getElementById('cheat-count-display').textContent = currentSiswa.cheatCount;
+                        return switchView('view-blocked');
+                    }
 
-                    if (!activeExamFound) {
-                        renderDashboardSiswa();
-                        switchView('view-student-dashboard');
-                    }
+                    // --- CEK STATUS HALAMAN TERAKHIR (DASHBOARD ATAU UJIAN AKTIF) ---
+                    let activePaketId = null;
+                    for (let i = 0; i < sessionStorage.length; i++) {
+                        const key = sessionStorage.key(i);
+                        if (key && key.startsWith(`exam_state_${currentSiswa.id}_`)) {
+                            activePaketId = key.split('_').pop();
+                            break;
+                        }
+                    }
+
+                    if (activePaketId) {
+                        const p = dbPaket.find(x => x.id === activePaketId);
+                        if (p) {
+                            tempPaketToStart = p;
+                            mulaiUjian(false); // Langsung render ke halaman soal terakhir
+                        } else {
+                            renderDashboardSiswa();
+                            switchView('view-student-dashboard');
+                        }
+                    } else {
+                        renderDashboardSiswa();
+                        switchView('view-student-dashboard');
+                    }
                 }
             } else {
                 // JIKA BELUM LOGIN, TAMPILKAN HALAMAN LOGIN SECARA INSTAN TANPA LOADING SINKRON!
@@ -1378,19 +1385,24 @@
             }
 
             if (savedState && savedState.soalSiswa && savedState.soalSiswa.length > 0) {
-                soalSiswa = savedState.soalSiswa;
-                jawabanSiswa = savedState.jawabanSiswa || {};
-                statusRagu = savedState.statusRagu || {};
-                currentIndex = savedState.currentIndex || 0;
-            } else {
-                const shuffleArray = (array) => { let arr = [...array]; for (let i=arr.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1)); [arr[i], arr[j]]=[arr[j], arr[i]]; } return arr; };
-                let sPG = shuffleArray(rawSoal.filter(s => s.jenis === 'PG' || s.jenis === 'PGK'));
-                let sEsai = shuffleArray(rawSoal.filter(s => s.jenis === 'ESAI'));
-                let sBS = shuffleArray(rawSoal.filter(s => s.jenis === 'BS'));
-                let sJodoh = shuffleArray(rawSoal.filter(s => s.jenis === 'JODOH'));
-                soalSiswa = [...sPG, ...sEsai, ...sBS, ...sJodoh];
-                jawabanSiswa = {}; statusRagu = {}; currentIndex = 0; 
-            }
+                soalSiswa = savedState.soalSiswa;
+                jawabanSiswa = savedState.jawabanSiswa || {};
+                statusRagu = savedState.statusRagu || {};
+                currentIndex = savedState.currentIndex || 0;
+            } else {
+                const shuffleArray = (array) => { let arr = [...array]; for (let i=arr.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1)); [arr[i], arr[j]]=[arr[j], arr[i]]; } return arr; };
+                let sPG = shuffleArray(rawSoal.filter(s => s.jenis === 'PG' || s.jenis === 'PGK'));
+                let sEsai = shuffleArray(rawSoal.filter(s => s.jenis === 'ESAI'));
+                let sBS = shuffleArray(rawSoal.filter(s => s.jenis === 'BS'));
+                let sJodoh = shuffleArray(rawSoal.filter(s => s.jenis === 'JODOH'));
+                soalSiswa = [...sPG, ...sEsai, ...sBS, ...sJodoh];
+                jawabanSiswa = {}; statusRagu = {}; currentIndex = 0; 
+
+                // --- RESET CHEAT COUNT KETIKA MULAI UJIAN BARU ---
+                currentSiswa.cheatCount = 0;
+                sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
+                fetchGAS('simpanSiswa', currentSiswa);
+            }
 
             document.getElementById('header-mapel').textContent = activePaket.nama;
             document.getElementById('header-nama').textContent = `${currentSiswa.nama} - ${currentSiswa.kelas}`;
@@ -1644,17 +1656,37 @@
             if(!isExamActive || !currentSiswa) return;
             currentSiswa.cheatCount = (currentSiswa.cheatCount || 0) + 1;
             simpanStateUjian();
-            if (currentSiswa.cheatCount >= 3) {
-                kirimLogSistem("Pelanggaran Berat (Blokir)", `Siswa terblokir setelah 3x pelanggaran pada ujian ${activePaket.nama}`); // PENAMBAHAN LOG
+            
+            // --- PERBAIKAN: Selalu simpan peringatan curang ke memori session dan database ---
+            sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
+            fetchGAS("simpanSiswa", currentSiswa);
+
+            if (currentSiswa.cheatCount >= 5) {
+                // Kecurangan ke-5: Ujian otomatis selesai paksa
+                kirimLogSistem("Pelanggaran Maksimal (Selesai Paksa)", `Ujian dihentikan paksa karena 5x pelanggaran pada paket ${activePaket.nama}`); 
+                showToast("Pelanggaran maksimal! Ujian otomatis diakhiri.", "error");
+                akhiriUjian();
+            } else if (currentSiswa.cheatCount === 3 || currentSiswa.cheatCount === 4) {
+                // Kecurangan ke-3 dan ke-4: Terblokir merah dan butuh token
+                kirimLogSistem("Pelanggaran Berat (Blokir)", `Siswa terblokir setelah ${currentSiswa.cheatCount}x pelanggaran pada ujian ${activePaket.nama}`); 
                 
-                currentSiswa.isBlocked = true; isExamActive = false; clearInterval(timerInterval); exitFullscreen(); 
-                document.getElementById('cheat-count-display').textContent = currentSiswa.cheatCount; switchView('view-blocked');
+                currentSiswa.isBlocked = true; 
+                
+                // --- PERBAIKAN: Pastikan status isBlocked tersimpan dengan aman ---
+                sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
+                fetchGAS("simpanSiswa", currentSiswa);
+                
+                isExamActive = false; clearInterval(timerInterval); exitFullscreen(); 
+                document.getElementById('cheat-count-display').textContent = currentSiswa.cheatCount; 
+                switchView('view-blocked');
             } else { 
-                kirimLogSistem("Peringatan Curang", `Peringatan ke-${currentSiswa.cheatCount} (Pindah Tab / Klik Kanan)`); // PENAMBAHAN LOG
-                showToast(`Peringatan Kecurangan (${currentSiswa.cheatCount}/3)! Sistem merekam aktivitas mencurigakan.`, "error"); 
+                // Kecurangan 1, 2: Hanya peringatan
+                kirimLogSistem("Peringatan Curang", `Peringatan ke-${currentSiswa.cheatCount} (Pindah Tab / Klik Kanan)`); 
+                showToast(`Peringatan Kecurangan (${currentSiswa.cheatCount}/2)! Sistem merekam aktivitas mencurigakan.`, "error"); 
             }
         }
         document.addEventListener("visibilitychange", () => { if (document.hidden && isExamActive) triggerCheat(); });
+        
         document.addEventListener('contextmenu', event => { if(isExamActive) { event.preventDefault(); triggerCheat(); } });
         ['copy', 'cut', 'paste', 'drop'].forEach(evt => { document.addEventListener(evt, e => { if(isExamActive) { e.preventDefault(); triggerCheat(); } }); });
         document.addEventListener('keydown', function(e) {
@@ -1723,17 +1755,41 @@
         }
 
         function bukaBlokir(e) {
-            e.preventDefault(); const inputToken = document.getElementById('inputTokenBlokir').value.trim().toUpperCase();
-            const tokenData = dbToken.find(t => String(t.token).toUpperCase() === inputToken && t.jenis === 'Buka_Blokir' && t.paketId === tempPaketToStart?.id);
-            if (!tokenData) return showToast("Token Buka Blokir tidak valid!", "error"); if (tokenData.isUsed) return showToast("Token sudah terpakai!", "error");
+            e.preventDefault(); 
+            const inputToken = document.getElementById('inputTokenBlokir').value.trim().toUpperCase();
             
-            tokenData.isUsed = true; tokenData.usedBy = currentSiswa.nama; fetchGAS('updateStatusToken', tokenData);
-            currentSiswa.isBlocked = false; currentSiswa.cheatCount = 0; fetchGAS('simpanSiswa', currentSiswa);
+            // Perbaikan: Hapus pengecekan tempPaketToStart karena memori ini kosong saat terblokir
+            const tokenData = dbToken.find(t => String(t.token).toUpperCase() === inputToken && t.jenis === 'Buka_Blokir');
             
-            kirimLogSistem("Buka Blokir", `Siswa berhasil membuka blokir menggunakan token khusus.`); // PENAMBAHAN LOG
+            if (!tokenData) return showToast("Token Buka Blokir tidak valid!", "error"); 
+            if (tokenData.isUsed) return showToast("Token sudah terpakai!", "error");
+            
+            tokenData.isUsed = true; 
+            tokenData.usedBy = currentSiswa.nama; 
+            fetchGAS('updateStatusToken', tokenData);
+            
+            // JANGAN RESET cheatCount ke 0, agar kecurangan ke-5 bisa memicu Selesai Ujian
+            currentSiswa.isBlocked = false; 
+            sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
+            fetchGAS('simpanSiswa', currentSiswa);
+            
+            kirimLogSistem("Buka Blokir", `Siswa berhasil membuka blokir menggunakan token khusus.`);
 
-            document.getElementById('inputTokenBlokir').value = ''; showToast("Blokir dibuka. Harap kerjakan dengan jujur!", "success");
-            enterFullscreen(); isExamActive = true; document.getElementById('view-exam').classList.add('exam-active-mode'); mulaiTimerSiswa(); switchView('view-exam');
+            document.getElementById('inputTokenBlokir').value = ''; 
+            
+            if (activePaket) {
+                showToast("Blokir dibuka. Peringatan Terakhir!", "success");
+                enterFullscreen(); 
+                isExamActive = true; 
+                document.getElementById('view-exam').classList.add('exam-active-mode'); 
+                mulaiTimerSiswa(); 
+                switchView('view-exam');
+            } else {
+                showToast("Blokir dibuka. Silakan Lanjutkan ujian dari Beranda!", "success");
+                isExamActive = false;
+                renderDashboardSiswa();
+                switchView('view-student-dashboard');
+            }
         }
 
         // --- STREAMING_CHUNK:Admin Setup and Dashboard Navigation... ---
@@ -2176,30 +2232,47 @@
 
         // --- ADMIN: TOKEN (SUPERADMIN ONLY) ---
         function renderFormToken() {
-            const tbody = document.getElementById('tbody-token'); tbody.innerHTML = '';
-            const tSusulan = dbToken.filter(t => t.jenis !== 'Reguler'); // Hanya tampilkan token khusus
-            if(tSusulan.length === 0) return tbody.innerHTML = '<tr><td colspan="3" class="p-6 text-center text-slate-500">Tidak ada token khusus aktif</td></tr>';
+            const selectPaket = document.getElementById('tokenPaketId');
+            if(selectPaket) {
+                const currentVal = selectPaket.value;
+                selectPaket.innerHTML = '<option value="" disabled selected>-- Pilih Paket Ujian --</option>';
+                dbPaket.forEach(p => {
+                    selectPaket.innerHTML += `<option value="${p.id}">${p.nama} (${p.mapel})</option>`;
+                });
+                if(currentVal) selectPaket.value = currentVal;
+            }
 
-            tSusulan.forEach(t => {
-                const stat = t.jenis === 'Susulan' ? '<span class="bg-amber-50 text-amber-600 px-3 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase border border-amber-100"><i class="fas fa-history mr-1"></i> Susulan</span>' : '<span class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase border border-red-100"><i class="fas fa-unlock-alt mr-1"></i> Buka Blokir</span>';
-                const usedInfo = t.isUsed ? `<span class="block mt-1.5 text-[10px] text-red-500 font-bold"><i class="fas fa-user-lock"></i> Terpakai: ${t.usedBy}</span>` : `<span class="block mt-1.5 text-[10px] text-emerald-500 font-bold"><i class="fas fa-check"></i> Belum Dipakai</span>`;
-                
-                tbody.innerHTML += `<tr class="hover:bg-slate-50/50 transition border-b border-slate-50"><td class="py-4 px-2"><span class="font-mono font-black text-[#0f172a] text-sm tracking-[0.2em] bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm">${t.token}</span></td><td class="py-4 px-2">${stat} ${usedInfo}</td><td class="py-4 px-2 text-right"><button onclick="bukaAdminConfirm('Hapus Token?', 'Token tidak akan bisa digunakan lagi.', () => { dbToken = dbToken.filter(x=>String(x.token).toUpperCase() !== '${String(t.token).toUpperCase()}'); fetchGAS('hapusToken', {token: '${String(t.token).toUpperCase()}'}); renderFormToken(); })" class="text-red-500 hover:text-white bg-red-50 hover:bg-red-500 w-8 h-8 inline-flex items-center justify-center rounded-lg transition text-xs border border-red-100 shadow-sm"><i class="fas fa-trash"></i></button></td></tr>`;
-            });
-        }
-        function buatToken(e) { 
-            e.preventDefault();
-            const jenisToken = document.getElementById('tokenJenis').value;
-            for(let i=0; i<15; i++) {
-                const newToken = Math.random().toString(36).substr(2,6).toUpperCase();
-                const tokenData = { token: newToken, paketId: 'ALL', jenis: jenisToken, isUsed: false, usedBy: null };
-                dbToken.push(tokenData);
-                fetchGAS("simpanToken", tokenData);
-            }
-            renderFormToken();
-            showToast(`15 Token berhasil digenerate`, "success"); 
-        }
+            const tbody = document.getElementById('tbody-token'); tbody.innerHTML = '';
+            const tSusulan = dbToken.filter(t => t.jenis !== 'Reguler'); // Hanya tampilkan token khusus
+            if(tSusulan.length === 0) return tbody.innerHTML = '<tr><td colspan="3" class="p-6 text-center text-slate-500">Tidak ada token khusus aktif</td></tr>';
 
+            tSusulan.forEach(t => {
+                const stat = t.jenis === 'Susulan' ? '<span class="bg-amber-50 text-amber-600 px-3 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase border border-amber-100"><i class="fas fa-history mr-1"></i> Susulan</span>' : '<span class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase border border-red-100"><i class="fas fa-unlock-alt mr-1"></i> Buka Blokir</span>';
+                const usedInfo = t.isUsed ? `<span class="block mt-1.5 text-[10px] text-red-500 font-bold"><i class="fas fa-user-lock"></i> Terpakai: ${t.usedBy}</span>` : `<span class="block mt-1.5 text-[10px] text-emerald-500 font-bold"><i class="fas fa-check"></i> Belum Dipakai</span>`;
+                const pkt = dbPaket.find(p => p.id === t.paketId);
+                const paketLabel = `<span class="block mt-1.5 text-[10px] font-bold text-indigo-500 truncate max-w-[150px]"><i class="fas fa-box text-slate-400"></i> ${pkt ? pkt.nama : t.paketId}</span>`;
+                
+                tbody.innerHTML += `<tr class="hover:bg-slate-50/50 transition border-b border-slate-50"><td class="py-4 px-2"><span class="font-mono font-black text-[#0f172a] text-sm tracking-[0.2em] bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm">${t.token}</span>${paketLabel}</td><td class="py-4 px-2">${stat} ${usedInfo}</td><td class="py-4 px-2 text-right"><button onclick="bukaAdminConfirm('Hapus Token?', 'Token tidak akan bisa digunakan lagi.', () => { dbToken = dbToken.filter(x=>String(x.token).toUpperCase() !== '${String(t.token).toUpperCase()}'); fetchGAS('hapusToken', {token: '${String(t.token).toUpperCase()}'}); renderFormToken(); })" class="text-red-500 hover:text-white bg-red-50 hover:bg-red-500 w-8 h-8 inline-flex items-center justify-center rounded-lg transition text-xs border border-red-100 shadow-sm"><i class="fas fa-trash"></i></button></td></tr>`;
+            });
+        }
+
+        function buatToken(e) { 
+            e.preventDefault();
+            const jenisToken = document.getElementById('tokenJenis').value;
+            const paketId = document.getElementById('tokenPaketId').value;
+            if(!paketId) return showToast("Pilih paket ujian terlebih dahulu!", "error");
+
+            let tokenTerbuat = 0;
+            for(let i=0; i<10; i++) {
+                const newToken = Math.random().toString(36).substr(2,6).toUpperCase();
+                const tokenData = { token: newToken, paketId: paketId, jenis: jenisToken, isUsed: false, usedBy: null };
+                dbToken.push(tokenData);
+                fetchGAS("simpanToken", tokenData);
+                tokenTerbuat++;
+            }
+            renderFormToken();
+            showToast(`${tokenTerbuat} Token berhasil digenerate`, "success"); 
+        }
         // --- STREAMING_CHUNK:Exam Package Logic... ---
         // --- ADMIN: PAKET SOAL ---
         function renderGridPaket() {
