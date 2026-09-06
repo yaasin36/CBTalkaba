@@ -2364,7 +2364,10 @@
         }
 
         function initQuill(id) {
-            if (!quillEditors[id]) {
+            const el = document.getElementById(id);
+            if (!el) return null;
+            // Deteksi jika elemen belum menjadi container Quill (karena baru dirender ulang via innerHTML)
+            if (!quillEditors[id] || !el.classList.contains('ql-container')) {
                 quillEditors[id] = new Quill(`#${id}`, quillOptions);
             }
             return quillEditors[id];
@@ -2524,6 +2527,11 @@
             document.getElementById('title-form-soal').innerHTML = '<i class="fas fa-plus-circle mr-2 text-indigo-600"></i> Tambah Soal Baru';
             removeMainImage(); document.getElementById('pg-options-container').innerHTML = ''; document.getElementById('bs-rows-container').innerHTML = ''; document.getElementById('jodoh-kiri-container').innerHTML = ''; document.getElementById('jodoh-kanan-container').innerHTML = '';
             
+            // Hapus memori cache editor sebelumnya agar form yang baru bisa diketik langsung
+            Object.keys(quillEditors).forEach(key => {
+                if (key !== 'edit-teks-soal-editor') delete quillEditors[key];
+            });
+
             const mainEditor = initQuill('edit-teks-soal-editor');
             mainEditor.root.innerHTML = '';
 
