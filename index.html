@@ -1653,42 +1653,46 @@
 
         // --- FITUR ANTI KECURANGAN & AUTO SUBMIT ---
         function triggerCheat() {
-            if(!isExamActive || !currentSiswa) return;
-            currentSiswa.cheatCount = (currentSiswa.cheatCount || 0) + 1;
-            simpanStateUjian();
-            
-            // --- PERBAIKAN: Selalu simpan peringatan curang ke memori session dan database ---
-            sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
-            fetchGAS("simpanSiswa", currentSiswa);
+            if(!isExamActive || !currentSiswa) return;
+            currentSiswa.cheatCount = (currentSiswa.cheatCount || 0) + 1;
+            simpanStateUjian();
+            
+            // --- PERBAIKAN: Selalu simpan peringatan curang ke memori session dan database ---
+            sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
+            fetchGAS("simpanSiswa", currentSiswa);
 
-            if (currentSiswa.cheatCount >= 5) {
-                // Kecurangan ke-5: Ujian otomatis selesai paksa
-                kirimLogSistem("Pelanggaran Maksimal (Selesai Paksa)", `Ujian dihentikan paksa karena 5x pelanggaran pada paket ${activePaket.nama}`); 
-                showToast("Pelanggaran maksimal! Ujian otomatis diakhiri.", "error");
-                akhiriUjian();
-            } else if (currentSiswa.cheatCount === 3 || currentSiswa.cheatCount === 4) {
-                // Kecurangan ke-3 dan ke-4: Terblokir merah dan butuh token
-                kirimLogSistem("Pelanggaran Berat (Blokir)", `Siswa terblokir setelah ${currentSiswa.cheatCount}x pelanggaran pada ujian ${activePaket.nama}`); 
-                
-                currentSiswa.isBlocked = true; 
-                
-                // --- PERBAIKAN: Pastikan status isBlocked tersimpan dengan aman ---
-                sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
-                fetchGAS("simpanSiswa", currentSiswa);
-                
-                isExamActive = false; clearInterval(timerInterval); exitFullscreen(); 
-                document.getElementById('cheat-count-display').textContent = currentSiswa.cheatCount; 
-                switchView('view-blocked');
-            } else { 
-                // Kecurangan 1, 2: Hanya peringatan
-                kirimLogSistem("Peringatan Curang", `Peringatan ke-${currentSiswa.cheatCount} (Pindah Tab / Klik Kanan)`); 
-                showToast(`Peringatan Kecurangan (${currentSiswa.cheatCount}/2)! Sistem merekam aktivitas mencurigakan.`, "error"); 
-            }
-        }
+            if (currentSiswa.cheatCount >= 5) {
+                // Kecurangan ke-5: Ujian otomatis selesai paksa
+                kirimLogSistem("Pelanggaran Maksimal (Selesai Paksa)", `Ujian dihentikan paksa karena 5x pelanggaran pada paket ${activePaket.nama}`); 
+                showToast("Pelanggaran maksimal! Ujian otomatis diakhiri.", "error");
+                akhiriUjian();
+            } else if (currentSiswa.cheatCount === 3 || currentSiswa.cheatCount === 4) {
+                // Kecurangan ke-3 dan ke-4: Terblokir merah dan butuh token
+                kirimLogSistem("Pelanggaran Berat (Blokir)", `Siswa terblokir setelah ${currentSiswa.cheatCount}x pelanggaran pada ujian ${activePaket.nama}`); 
+                
+                currentSiswa.isBlocked = true; 
+                
+                // --- PERBAIKAN: Pastikan status isBlocked tersimpan dengan aman ---
+                sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
+                fetchGAS("simpanSiswa", currentSiswa);
+                
+                isExamActive = false; clearInterval(timerInterval); exitFullscreen(); 
+                document.getElementById('cheat-count-display').textContent = currentSiswa.cheatCount; 
+                switchView('view-blocked');
+            } else { 
+                // Kecurangan 1, 2: Hanya peringatan
+                kirimLogSistem("Peringatan Curang", `Peringatan ke-${currentSiswa.cheatCount} (Pindah Tab / Klik Kanan)`); 
+                showToast(`Peringatan Kecurangan (${currentSiswa.cheatCount}/2)! Sistem merekam aktivitas mencurigakan.`, "error"); 
+            }
+        }
+        window.addEventListener("blur", () => { if (isExamActive) triggerCheat(); });
+        document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && isExamActive) triggerCheat(); });
+        document.addEventListener("webkitfullscreenchange", () => { if (!document.webkitFullscreenElement && isExamActive) triggerCheat(); });
+
         document.addEventListener("visibilitychange", () => { if (document.hidden && isExamActive) triggerCheat(); });
         
         document.addEventListener('contextmenu', event => { if(isExamActive) { event.preventDefault(); triggerCheat(); } });
-        ['copy', 'cut', 'paste', 'drop'].forEach(evt => { document.addEventListener(evt, e => { if(isExamActive) { e.preventDefault(); triggerCheat(); } }); });
+        ['copy', 'cut', 'paste', 'drop'].forEach(evt => { document.addEventListener(evt, e => { if(isExamActive) { e.preventDefault(); triggerCheat(); } }); });
         document.addEventListener('keydown', function(e) {
             if(!isExamActive) return true;
             const forbiddenKeys = ['c', 'v', 'x', 'p', 's', 'a'];
