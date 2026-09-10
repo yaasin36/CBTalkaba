@@ -954,7 +954,29 @@
                     dbAdmin = []; const aData = res.data.admin; for(let i=1; i<aData.length; i++) dbAdmin.push({ id: aData[i][0], nama: aData[i][1], role: aData[i][2], mapel: aData[i][3], username: aData[i][4], password: String(aData[i][5]) });
                     dbSiswa = []; const siData = res.data.siswa; for(let i=1; i<siData.length; i++) dbSiswa.push({ id: siData[i][0], nama: siData[i][1], username: siData[i][2], password: String(siData[i][3]), kelas: siData[i][4], statusUjian: siData[i][5], cheatCount: siData[i][6], isBlocked: siData[i][7] });
                     dbPaket = []; const pData = res.data.paket; for(let i=1; i<pData.length; i++) dbPaket.push({ id: pData[i][0], nama: pData[i][1], mapel: pData[i][2], durasi: pData[i][3], waktuMulai: pData[i][4], batasWaktu: pData[i][5], targetKelas: (pData[i][6]?JSON.parse(pData[i][6]):[]), aktif: pData[i][7] });
-                    dbSoal = []; const sData = res.data.soal; for(let i=1; i<sData.length; i++) dbSoal.push(JSON.parse(sData[i][5]));
+                    
+                    // --- PERUBAHAN: Penggabungan kembali (Re-assembling) data JSON Soal ---
+                    dbSoal = []; 
+                    const sData = res.data.soal; 
+                    for(let i=1; i<sData.length; i++) {
+                        let rowData = sData[i];
+                        let fullJsonString = "";
+                        // Menggabungkan potongan JSON yang ada mulai dari Kolom ke-6 (indeks 5) sampai habis (indeks 20)
+                        for(let j = 5; j <= 20; j++) {
+                            if(rowData[j]) {
+                                fullJsonString += rowData[j];
+                            }
+                        }
+                        
+                        if(fullJsonString) {
+                            try {
+                                dbSoal.push(JSON.parse(fullJsonString));
+                            } catch (e) {
+                                console.warn("Gagal mem-parsing salah satu soal:", fullJsonString.substring(0, 100) + "...", e);
+                            }
+                        }
+                    }
+
                     dbToken = []; const tData = res.data.token; for(let i=1; i<tData.length; i++) dbToken.push({ token: tData[i][0], paketId: tData[i][1], jenis: tData[i][2], isUsed: tData[i][3], usedBy: tData[i][4] });
                     dbHasil = []; const hData = res.data.hasil; for(let i=1; i<hData.length; i++) dbHasil.push({ wkt: hData[i][0], id: hData[i][1], siswaId: hData[i][2], nama: hData[i][3], kelas: hData[i][4], paketId: hData[i][5], mapel: hData[i][6], skor: hData[i][7], durasi: hData[i][8], detail: JSON.parse(hData[i][9]||'{}'), koreksiEsai: JSON.parse(hData[i][10]||'{}') });
                 }
@@ -2656,11 +2678,15 @@
         function tutupModalSoal() { document.getElementById('modal-form-soal').classList.add('hidden'); }
 
         async function simpanSoal(e) {
-            e.preventDefault(); const id = document.getElementById('edit-id-soal').value; const jenis = document.getElementById('edit-jenis-soal').value;
-            const btn = document.getElementById('btn-save-soal'); btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...'; btn.disabled = true;
+            e.preventDefault(); 
+            const id = document.getElementById('edit-id-soal').value; 
+            const jenis = document.getElementById('edit-jenis-soal').value;
+            const btn = document.getElementById('btn-save-soal'); 
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Menyimpan ke Database...'; 
+            btn.disabled = true;
 
             const mainEditor = initQuill('edit-teks-soal-editor');
-            const teksSoal = mainEditor.root.innerHTML;
+            const teksSoal = mainEditor ? mainEditor.root.innerHTML : '';
 
             let gambarUtama = getBase64(document.getElementById('preview-main-img'));
             let newData = { jenis: jenis, teks: teksSoal, gambar: gambarUtama, paketId: adminAktifPaketId };
@@ -2670,30 +2696,41 @@
                 for (const a of ['A','B','C','D','E']) { 
                     let imgOpt = getBase64(document.getElementById(`preview-opsi-${a}`)); 
                     const optEditor = initQuill(`opsi-teks-editor-${a}`);
-                    opsi.push({id: a, teks: optEditor.root.innerHTML, img: imgOpt}); 
+                    opsi.push({id: a, teks: optEditor ? optEditor.root.innerHTML : '', img: imgOpt}); 
                 }
                 for(let r of document.getElementsByName('kunci_pg')) { if(r.checked) kunci.push(r.value); }
-                if(kunci.length === 0) { btn.innerHTML = '<i class="fas fa-save"></i> Simpan ke Bank Soal'; btn.disabled = false; return showToast("Pilih minimal 1 kunci jawaban!", "error"); }
+                if(kunci.length === 0) { 
+                    btn.innerHTML = '<i class="fas fa-save"></i> Simpan ke Bank Soal'; 
+                    btn.disabled = false; 
+                    return showToast("Pilih minimal 1 kunci jawaban!", "error"); 
+                }
                 newData.opsi = opsi; newData.jawabanBenar = kunci;
             } 
             else if (jenis === 'BS') {
                 const rows = document.getElementById('bs-rows-container').children;
-                if(rows.length === 0) { btn.innerHTML = '<i class="fas fa-save"></i> Simpan ke Bank Soal'; btn.disabled = false; return showToast("Minimal 1 pernyataan BS!", "error"); }
+                if(rows.length === 0) { 
+                    btn.innerHTML = '<i class="fas fa-save"></i> Simpan ke Bank Soal'; 
+                    btn.disabled = false; 
+                    return showToast("Minimal 1 pernyataan BS!", "error"); 
+                }
                 const p = [];
                 for(let i=0; i<rows.length; i++) {
                     let kunci = ''; const rbs = rows[i].querySelectorAll('.bs-kunci');
                     if(rbs[0].checked) kunci = 'B'; if(rbs[1].checked) kunci = 'S';
-                    if(!kunci) { btn.innerHTML = '<i class="fas fa-save"></i> Simpan ke Bank Soal'; btn.disabled = false; return showToast(`Baris ke-${i+1} belum diberi kunci.`, "error"); }
+                    if(!kunci) { 
+                        btn.innerHTML = '<i class="fas fa-save"></i> Simpan ke Bank Soal'; 
+                        btn.disabled = false; 
+                        return showToast(`Baris ke-${i+1} belum diberi kunci.`, "error"); 
+                    }
                     
                     const bsEditor = initQuill(`bs-teks-editor-${i}`);
                     let imgBS = getBase64(rows[i].querySelector('.bs-img-preview'));
-                    p.push({teks: bsEditor.root.innerHTML, img: imgBS, kunci: kunci});
+                    p.push({teks: bsEditor ? bsEditor.root.innerHTML : '', img: imgBS, kunci: kunci});
                 }
                 newData.pernyataan = p;
             }
             else if (jenis === 'JODOH') {
                 const dropdowns = document.querySelectorAll('.jodoh-kunci-dropdown');
-                
                 const kl = []; const kn = []; const kuncis = {}; let err = false;
                 
                 let kananCount = 0;
@@ -2708,24 +2745,63 @@
                 let kiriCount = 0;
                 for(let i=1; i<=8; i++){
                     if(quillEditors[`jodoh-kiri-editor-${i}`]){
-                        const id = 'L'+(kiriCount+1); 
+                        const idKiri = 'L'+(kiriCount+1); 
                         const kiriEditor = quillEditors[`jodoh-kiri-editor-${i}`];
-                        kl.push({id: id, teks: kiriEditor.root.innerHTML});
-                        if(!dropdowns[kiriCount].value) { err = true; showToast(`Baris kiri ke-${kiriCount+1} belum diberi pasangan kunci.`, "error"); }
-                        kuncis[id] = dropdowns[kiriCount].value;
+                        kl.push({id: idKiri, teks: kiriEditor.root.innerHTML});
+                        if(!dropdowns[kiriCount] || !dropdowns[kiriCount].value) { 
+                            err = true; 
+                            showToast(`Baris kiri ke-${kiriCount+1} belum diberi pasangan kunci.`, "error"); 
+                        } else {
+                            kuncis[idKiri] = dropdowns[kiriCount].value;
+                        }
                         kiriCount++;
                     }
                 }
 
-                if(kl.length===0 || kn.length===0) { btn.innerHTML = '<i class="fas fa-save"></i> Simpan ke Bank Soal'; btn.disabled = false; return showToast("Pernyataan dan Pilihan tidak boleh kosong", "error"); }
-                if(err) { btn.innerHTML = '<i class="fas fa-save"></i> Simpan ke Bank Soal'; btn.disabled = false; return; }
+                if(kl.length===0 || kn.length===0) { 
+                    btn.innerHTML = '<i class="fas fa-save"></i> Simpan ke Bank Soal'; 
+                    btn.disabled = false; 
+                    return showToast("Pernyataan dan Pilihan tidak boleh kosong", "error"); 
+                }
+                if(err) { 
+                    btn.innerHTML = '<i class="fas fa-save"></i> Simpan ke Bank Soal'; 
+                    btn.disabled = false; 
+                    return; 
+                }
                 newData.kiri = kl; newData.kanan = kn; newData.kunciJodoh = kuncis;
             }
 
-            if(id) { newData.id = parseInt(id); dbSoal[dbSoal.findIndex(x=>x.id==id)] = newData; } else { newData.id = Date.now(); dbSoal.push(newData); }
-            fetchGAS("simpanSoal", newData); 
-            tutupModalSoal(); bukaListSoal(adminAktifPaketId); showToast("Butir Soal berhasil disimpan!", "success");
-            btn.innerHTML = '<i class="fas fa-save"></i> Simpan ke Bank Soal'; btn.disabled = false;
+            if(id) { 
+                newData.id = parseInt(id); 
+            } else { 
+                newData.id = Date.now(); 
+            }
+
+            // Kirim ke Google Apps Script dan tunggu responnya
+            try {
+                const res = await fetchGAS("simpanSoal", newData);
+                if(res && res.status === "error") {
+                    throw new Error(res.message || "Gagal menyimpan ke Google Spreadsheet.");
+                }
+
+                // Perbarui memori lokal setelah server berhasil menyimpan
+                if(id) {
+                    const idx = dbSoal.findIndex(x => x.id == id);
+                    if(idx !== -1) dbSoal[idx] = newData;
+                } else {
+                    dbSoal.push(newData);
+                }
+
+                tutupModalSoal(); 
+                bukaListSoal(adminAktifPaketId); 
+                showToast("Butir Soal berhasil disimpan ke Database!", "success");
+            } catch(err) {
+                console.error("Gagal simpan soal:", err);
+                showToast("Gagal menyimpan ke server: " + err.message, "error");
+            } finally {
+                btn.innerHTML = '<i class="fas fa-save"></i> Simpan ke Bank Soal'; 
+                btn.disabled = false;
+            }
         }
 
         // --- PREVIEW SOAL ---
