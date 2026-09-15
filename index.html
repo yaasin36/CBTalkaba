@@ -1771,7 +1771,6 @@
 
         // --- STREAMING_CHUNK:Question Rendering Engine... ---
         // --- RENDER SOAL ENGINE ---
-        // --- RENDER SOAL ENGINE ---
         function renderSoalSiswa(containerId, isPreview = false) {
             const container = typeof containerId === 'string' ? document.getElementById(containerId) : containerId;
             const soal = isPreview ? window.previewSoalData : soalSiswa[currentIndex];
@@ -1882,36 +1881,59 @@
             // 3. MENJODOHKAN (JODOH)
             else if (soal.jenis === 'JODOH') {
                 const ansObj = jawabanSiswa[soal.id] || {}; 
+                
+                // Kumpulkan semua id jawaban kanan yang sudah dipilih siswa saat ini
+                const usedAnswers = isPreview ? [] : Object.values(ansObj);
+
                 html += `<div class="flex flex-col lg:flex-row gap-8">`;
-                // Kolom Kiri
+                
+                // --- Kolom Kiri ---
                 html += `<div class="flex-1 space-y-4">
                     <h4 class="text-[10px] font-black text-indigo-700 uppercase tracking-widest bg-indigo-50 border border-indigo-100 px-3 py-2 rounded-lg text-center shadow-sm">Kolom Pernyataan</h4>`;
+                
                 (soal.kiri || []).forEach((k, idx) => {
                     const ans = isPreview ? '' : (ansObj[k.id] || '');
                     let optHtml = `<option value="">-- Pilih Pasangan --</option>`;
+                    
                     (soal.kanan || []).forEach(kn => {
                         const txtKn = kn.teks.length > 40 ? kn.teks.substring(0,40)+'...' : kn.teks;
                         optHtml += `<option value="${kn.id}" ${ans===kn.id?'selected':''}>${kn.id} - ${txtKn}</option>`;
                     });
                     const changeEvt = isPreview ? '' : `simpanJawabanSiswa({idKiri:'${k.id}', idKanan:this.value}, 'JODOH')`;
+                    
+                    // FITUR BARU: Dropdown menjadi abu-abu dan teks dicoret jika sudah dijawab
+                    const isAnswered = ans !== '';
+                    const selectBg = isAnswered 
+                        ? 'bg-slate-100 border-slate-300 text-slate-500' 
+                        : 'bg-emerald-50/50 border-emerald-200 text-emerald-700 hover:bg-emerald-50';
+
                     html += `
                     <div class="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col gap-3 shadow-sm hover:shadow-md transition">
                         <div class="flex gap-3 items-start">
                             <div class="w-8 h-8 rounded-lg bg-slate-50 text-slate-500 font-black flex items-center justify-center text-sm flex-shrink-0 border border-slate-200 mt-0.5 shadow-inner">${idx+1}</div>
                             <span class="text-sm font-medium text-slate-700 leading-relaxed mt-1">${k.teks}</span>
                         </div>
-                        <select class="mt-2 bg-emerald-50/50 border border-emerald-200 text-emerald-700 font-bold rounded-xl px-4 py-3 outline-none text-sm cursor-pointer w-full hover:bg-emerald-50 transition shadow-sm appearance-none" onchange="${changeEvt}">${optHtml}</select>
+                        <select class="mt-2 font-bold rounded-xl px-4 py-3 outline-none text-sm cursor-pointer w-full transition shadow-sm appearance-none border ${selectBg}" onchange="${changeEvt}">${optHtml}</select>
                     </div>`;
                 });
                 html += `</div>`;
-                // Kolom Kanan
+                
+                // --- Kolom Kanan ---
                 html += `<div class="flex-1 space-y-4">
                     <h4 class="text-[10px] font-black text-amber-700 uppercase tracking-widest bg-amber-50 border border-amber-100 px-3 py-2 rounded-lg text-center shadow-sm">Pilihan Acak</h4>`;
+                
                 (soal.kanan || []).forEach(kn => {
+                    // FITUR BARU: Kartu pilihan acak jadi abu-abu buram jika sudah terpakai
+                    const isUsed = usedAnswers.includes(kn.id);
+                    
+                    const cardBg = isUsed ? 'bg-slate-50 border-slate-200 opacity-50 grayscale' : 'bg-white border-slate-200 shadow-sm hover:shadow-md';
+                    const badgeBg = isUsed ? 'bg-slate-200 text-slate-400 border-slate-300' : 'bg-amber-50 border-amber-200 text-amber-600';
+                    const textCol = isUsed ? 'text-slate-400 line-through' : 'text-slate-600';
+
                     html += `
-                    <div class="bg-white border border-slate-200 rounded-2xl p-5 flex gap-4 shadow-sm items-center hover:shadow-md transition">
-                        <div class="w-10 h-10 bg-amber-50 border border-amber-200 text-amber-600 font-black rounded-xl flex items-center justify-center flex-shrink-0 text-lg shadow-inner">${kn.id}</div>
-                        <span class="text-sm font-medium text-slate-600 leading-relaxed">${kn.teks}</span>
+                    <div class="border rounded-2xl p-5 flex gap-4 items-center transition ${cardBg}">
+                        <div class="w-10 h-10 border font-black rounded-xl flex items-center justify-center flex-shrink-0 text-lg shadow-inner ${badgeBg}">${kn.id}</div>
+                        <span class="text-sm font-medium leading-relaxed ${textCol}">${kn.teks}</span>
                     </div>`;
                 });
                 html += `</div></div>`;
@@ -1936,7 +1958,8 @@
 
             simpanStateUjian();
 
-            if(type === 'PG') renderSoalSiswa('soal-content-area', false); 
+            // REVISI: Tambahkan 'JODOH' agar layar langsung update efek abu-abu saat dipilih
+            if(type === 'PG' || type === 'JODOH') renderSoalSiswa('soal-content-area', false); 
             else updatePaletteStyleSiswa(); 
         }
 
@@ -1990,38 +2013,53 @@
 
         // --- FITUR ANTI KECURANGAN & AUTO SUBMIT ---
         function triggerCheat() {
-            if(!isExamActive || !currentSiswa) return;
-            currentSiswa.cheatCount = (currentSiswa.cheatCount || 0) + 1;
-            simpanStateUjian();
-            
-            // --- PERBAIKAN: Selalu simpan peringatan curang ke memori session dan database ---
-            sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
-            fetchGAS("simpanSiswa", currentSiswa);
+            if(!isExamActive || !currentSiswa) return;
+            currentSiswa.cheatCount = (currentSiswa.cheatCount || 0) + 1;
+            simpanStateUjian();
+            
+            // Selalu simpan peringatan curang ke memori session dan database
+            sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
+            fetchGAS("simpanSiswa", currentSiswa);
 
-            if (currentSiswa.cheatCount >= 5) {
-                // Kecurangan ke-5: Ujian otomatis selesai paksa
-                kirimLogSistem("Pelanggaran Maksimal (Selesai Paksa)", `Ujian dihentikan paksa karena 5x pelanggaran pada paket ${activePaket.nama}`); 
-                showToast("Pelanggaran maksimal! Ujian otomatis diakhiri.", "error");
-                akhiriUjian();
-            } else if (currentSiswa.cheatCount === 3 || currentSiswa.cheatCount === 4) {
-                // Kecurangan ke-3 dan ke-4: Terblokir merah dan butuh token
-                kirimLogSistem("Pelanggaran Berat (Blokir)", `Siswa terblokir setelah ${currentSiswa.cheatCount}x pelanggaran pada ujian ${activePaket.nama}`); 
-                
-                currentSiswa.isBlocked = true; 
-                
-                // --- PERBAIKAN: Pastikan status isBlocked tersimpan dengan aman ---
-                sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
-                fetchGAS("simpanSiswa", currentSiswa);
-                
-                isExamActive = false; clearInterval(timerInterval); exitFullscreen(); 
-                document.getElementById('cheat-count-display').textContent = currentSiswa.cheatCount; 
-                switchView('view-blocked');
-            } else { 
-                // Kecurangan 1, 2: Hanya peringatan
-                kirimLogSistem("Peringatan Curang", `Peringatan ke-${currentSiswa.cheatCount} (Pindah Tab / Klik Kanan)`); 
-                showToast(`Peringatan Kecurangan (${currentSiswa.cheatCount}/2)! Sistem merekam aktivitas mencurigakan.`, "error"); 
-            }
-        }
+            if (currentSiswa.cheatCount >= 6) {
+                // Kecurangan ke-6: Ujian otomatis selesai paksa
+                kirimLogSistem("Pelanggaran Maksimal (Selesai Paksa)", `Ujian dihentikan paksa karena 6x pelanggaran pada paket ${activePaket.nama}`); 
+                showToast("Pelanggaran maksimal! Ujian otomatis diakhiri karena sudah melanggar 6 kali.", "error");
+                akhiriUjian();
+            } else if (currentSiswa.cheatCount >= 3 && currentSiswa.cheatCount <= 5) {
+                // Kecurangan ke-3, 4, dan 5: Terblokir merah dan butuh token
+                kirimLogSistem("Pelanggaran Berat (Blokir)", `Siswa terblokir setelah ${currentSiswa.cheatCount}x pelanggaran pada ujian ${activePaket.nama}`); 
+                
+                currentSiswa.isBlocked = true; 
+                sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
+                fetchGAS("simpanSiswa", currentSiswa);
+                
+                isExamActive = false; clearInterval(timerInterval); exitFullscreen(); 
+                document.getElementById('cheat-count-display').textContent = currentSiswa.cheatCount; 
+                
+                // --- FITUR BARU: BEDA ARAHAN UNTUK PENGAWAS VS PANITIA ---
+                // Mengambil elemen label instruksi di atas input token
+                const labelInstruksi = document.querySelector('#view-blocked form label');
+                
+                if (labelInstruksi) {
+                    if (currentSiswa.cheatCount === 5) {
+                        // Jika sudah curang ke-5 (Peringatan Terakhir sebelum dikeluarkan)
+                        labelInstruksi.innerHTML = '<i class="fas fa-user-shield mr-1 text-red-500"></i> Peringatan Terakhir! Minta Token Buka Blokir ke PANITIA';
+                        labelInstruksi.classList.replace('text-slate-400', 'text-red-500'); // Mengubah warna teks instruksi jadi merah
+                    } else {
+                        // Jika curang ke-3 dan ke-4
+                        labelInstruksi.innerHTML = '<i class="fas fa-key mr-1"></i> Minta Token Buka Blokir ke PENGAWAS';
+                        labelInstruksi.classList.replace('text-red-500', 'text-slate-400'); // Kembalikan ke warna standar
+                    }
+                }
+                
+                switchView('view-blocked');
+            } else { 
+                // Kecurangan 1, 2: Hanya peringatan
+                kirimLogSistem("Peringatan Curang", `Peringatan ke-${currentSiswa.cheatCount} (Pindah Tab / Klik Kanan)`); 
+                showToast(`Peringatan Kecurangan (${currentSiswa.cheatCount}/2)! Sistem merekam aktivitas mencurigakan.`, "error"); 
+            }
+        }
         window.addEventListener("blur", () => { if (isExamActive) triggerCheat(); });
         document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && isExamActive) triggerCheat(); });
         document.addEventListener("webkitfullscreenchange", () => { if (!document.webkitFullscreenElement && isExamActive) triggerCheat(); });
