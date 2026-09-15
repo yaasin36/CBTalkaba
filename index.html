@@ -186,6 +186,38 @@
                 print-color-adjust: exact !important;
             }
         }
+        /* --- FITUR CETAK TABEL TOKEN --- */
+        @media print {
+            body.printing-token aside, 
+            body.printing-token header, 
+            body.printing-token main > div:not(.flex-1), 
+            body.printing-token #tab-token > div:not(.flex-col), /* Sembunyikan stats card & form generator */
+            body.printing-token #token-toolbar, /* Sembunyikan filter & pencarian */
+            body.printing-token #token-footer, /* Sembunyikan footer pagination */
+            body.printing-token th:last-child, /* Sembunyikan kolom aksi (PDF/Print) */
+            body.printing-token td:last-child {
+                display: none !important;
+            }
+
+            body.printing-token, 
+            body.printing-token #view-admin-dashboard, 
+            body.printing-token main, 
+            body.printing-token main > .flex-1 {
+                display: block !important; height: auto !important; background: white !important; padding: 0 !important; margin: 0 !important; overflow: visible !important;
+            }
+
+            /* Perapihan Tabel */
+            body.printing-token #tab-token > div { border: none !important; box-shadow: none !important; }
+            body.printing-token table { width: 100% !important; border-collapse: collapse !important; }
+            body.printing-token th, body.printing-token td { padding: 6px 8px !important; font-size: 11px !important; border: 1px solid #cbd5e1 !important; color: #000 !important; }
+            body.printing-token th { background-color: #f1f5f9 !important; font-weight: bold !important; text-align: center !important; }
+            
+            /* Tambahkan Judul Laporan Otomatis */
+            body.printing-token #tab-token::before {
+                content: "REKAPITULASI DATA TOKEN UJIAN";
+                display: block !important; text-align: center !important; font-size: 18px !important; font-weight: 900 !important; margin-bottom: 10px !important; border-bottom: 2px solid #0f172a !important; padding-bottom: 10px !important; color: #000 !important;
+            }
+        }
     </style>
 </head>
 <body class="min-h-screen text-slate-800 antialiased flex flex-col bg-[#f4f7fe] selection:bg-[#0f172a] selection:text-white overflow-x-hidden">
@@ -647,35 +679,164 @@
                 </div>
 
                 <!-- TAB 6: TOKEN [SUPERADMIN ONLY] -->
-                <div id="tab-token" class="admin-tab-content hidden fade-in">
-                    <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-6 max-w-2xl">
-                        <div class="flex items-start gap-4 mb-6 pb-4 border-b border-slate-100">
-                            <div class="w-12 h-12 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center text-xl shadow-inner"><i class="fas fa-key"></i></div>
-                            <div><h2 class="text-lg font-black text-slate-800">Generate Token Akses</h2><p class="text-xs text-slate-500 mt-1 font-medium leading-relaxed">Gunakan fitur ini hanya untuk membuat token <b>Susulan</b> bagi siswa yang terlambat atau <b>Buka Blokir</b> akibat kecurangan.</p></div>
+                <div id="tab-token" class="admin-tab-content hidden fade-in w-full max-w-full">
+                    <!-- STATS CARDS -->
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+                        <!-- Total Token -->
+                        <div class="bg-white rounded-[1.25rem] border border-slate-200 p-5 shadow-sm flex flex-col justify-between hover:shadow-md transition">
+                            <div class="flex justify-between items-start mb-2">
+                                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total Token</p>
+                                <i class="fas fa-key text-blue-500 bg-blue-50 p-2 rounded-lg"></i>
+                            </div>
+                            <div class="mb-4"><span class="text-3xl font-black text-slate-800" id="stat-token-total">0</span> <span class="text-xs font-bold text-slate-400">tiket</span></div>
+                            <p class="text-[10px] font-bold text-slate-500 border-t border-slate-100 pt-3"><i class="fas fa-box text-blue-400 mr-1"></i> <span id="stat-token-paket">0</span> Paket Mapel Aktif</p>
                         </div>
-                        
-                        <form onsubmit="buatToken(event)" class="space-y-5 bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-inner">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Pilih Paket Ujian</label>
-                                <select id="tokenPaketId" required class="w-full border border-slate-200 rounded-xl px-4 py-3.5 bg-white outline-none text-sm font-semibold text-slate-700 cursor-pointer shadow-sm">
-                                    <option value="" disabled selected>-- Pilih Paket Ujian --</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Jenis Token Khusus</label>
-                                <select id="tokenJenis" class="w-full border border-slate-200 rounded-xl px-4 py-3.5 bg-white outline-none text-sm font-semibold text-slate-700 cursor-pointer shadow-sm">
-                                    <option value="Susulan">Susulan (Siswa Terlambat - Sekali Pakai)</option>
-                                    <option value="Buka_Blokir">Buka Blokir (Kecurangan 3x & 4x - Sekali Pakai)</option>
+                        <!-- Token Dipakai -->
+                        <div class="bg-white rounded-[1.25rem] border border-slate-200 p-5 shadow-sm flex flex-col justify-between hover:shadow-md transition">
+                            <div class="flex justify-between items-start mb-2">
+                                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Token Dipakai</p>
+                                <i class="fas fa-check-circle text-indigo-500 bg-indigo-50 p-2 rounded-lg"></i>
+                            </div>
+                            <div class="mb-4"><span class="text-3xl font-black text-indigo-600" id="stat-token-dipakai">0</span> <span class="text-xs font-bold text-slate-400">tervalidasi</span></div>
+                            <p class="text-[10px] font-bold text-slate-500 border-t border-slate-100 pt-3 flex items-center"><i class="fas fa-chart-pie text-indigo-400 mr-1"></i> <span id="stat-token-persen">0%</span> Digunakan</p>
+                        </div>
+                        <!-- Belum Terpakai -->
+                        <div class="bg-white rounded-[1.25rem] border border-slate-200 p-5 shadow-sm flex flex-col justify-between hover:shadow-md transition">
+                            <div class="flex justify-between items-start mb-2">
+                                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Belum Terpakai</p>
+                                <i class="fas fa-hourglass-half text-emerald-500 bg-emerald-50 p-2 rounded-lg"></i>
+                            </div>
+                            <div class="mb-4"><span class="text-3xl font-black text-emerald-600" id="stat-token-sisa">0</span> <span class="text-xs font-bold text-slate-400">tersedia</span></div>
+                            <p class="text-[10px] font-bold text-emerald-500 border-t border-slate-100 pt-3"><i class="fas fa-play text-emerald-400 mr-1"></i> Siap Diinput</p>
+                        </div>
+                        <!-- Token Susulan -->
+                        <div class="bg-white rounded-[1.25rem] border border-slate-200 p-5 shadow-sm flex flex-col justify-between hover:shadow-md transition">
+                            <div class="flex justify-between items-start mb-2">
+                                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Token Susulan</p>
+                                <i class="fas fa-history text-amber-500 bg-amber-50 p-2 rounded-lg"></i>
+                            </div>
+                            <div class="mb-4"><span class="text-3xl font-black text-amber-600" id="stat-token-susulan">0</span> <span class="text-xs font-bold text-slate-400">siswa</span></div>
+                            <p class="text-[10px] font-bold text-slate-500 border-t border-slate-100 pt-3"><i class="fas fa-clock text-amber-400 mr-1"></i> Terlambat / Izin</p>
+                        </div>
+                        <!-- Siswa Terblokir -->
+                        <div class="bg-white rounded-[1.25rem] border border-slate-200 p-5 shadow-sm flex flex-col justify-between hover:shadow-md transition border-l-4 border-l-red-400">
+                            <div class="flex justify-between items-start mb-2">
+                                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Siswa Terblokir</p>
+                                <i class="fas fa-user-lock text-red-500 bg-red-50 p-2 rounded-lg"></i>
+                            </div>
+                            <div class="mb-4"><span class="text-3xl font-black text-red-600" id="stat-token-blokir">0</span> <span class="text-xs font-bold text-slate-400">kasus</span></div>
+                            <p class="text-[10px] font-bold text-red-500 border-t border-slate-100 pt-3"><i class="fas fa-exclamation-triangle text-red-400 mr-1"></i> Indikasi Curang</p>
+                        </div>
+                    </div>
+
+                    <!-- GENERATOR CARD -->
+                    <div class="bg-white border border-slate-200 rounded-[1.5rem] p-6 shadow-sm mb-6 relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-1.5 h-full bg-[#0d6efd]"></div>
+                        <div class="flex justify-between items-center mb-5 pb-4 border-b border-slate-100">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-lg border border-blue-100"><i class="fas fa-bolt"></i></div>
+                                <div>
+                                    <h3 class="font-black text-slate-800 tracking-tight text-lg">Generator Akses Cepat Token Proktor</h3>
+                                    <p class="text-xs font-medium text-slate-500">Rilis token khusus sekali pakai untuk mengizinkan peserta ujian mengakses sistem</p>
+                                </div>
+                            </div>
+                            <div class="hidden md:block">
+                                <span class="bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-bold px-3 py-1.5 rounded-lg">Otoritas: Proktor Utama (Level 1)</span>
+                            </div>
+                        </div>
+
+                        <form onsubmit="buatToken(event)" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                            <div class="md:col-span-5">
+                                <label class="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Pilih Paket Ujian Mata Pelajaran <span class="text-red-500">*</span></label>
+                                <select id="tokenPaketId" required class="w-full border border-slate-200 rounded-xl px-4 py-3.5 bg-slate-50 outline-none text-sm font-semibold text-slate-700 cursor-pointer shadow-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition">
+                                    <option value="" disabled selected>-- Pilih Paket Ujian --</option>
                                 </select>
                             </div>
-                            <button type="submit" class="w-full bg-[#0f172a] text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-[#1e293b] active:scale-95 transition-all">Generate 10 Token</button>
-                        </form>
-                        
-                        <div class="mt-8 border-t border-slate-100 pt-6">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="font-black text-slate-800">Daftar Token Khusus Aktif</h3>
+                            <div class="md:col-span-3">
+                                <label class="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Jenis Akses</label>
+                                <select id="tokenJenis" class="w-full border border-slate-200 rounded-xl px-4 py-3.5 bg-slate-50 outline-none text-sm font-semibold text-slate-700 cursor-pointer shadow-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition">
+                                    <option value="Buka_Blokir">Buka Blokir</option>
+                                    <option value="Susulan">Susulan (Terlambat)</option>
+                                </select>
                             </div>
-                            <div class="overflow-x-auto"><table class="w-full text-left text-xs whitespace-nowrap"><thead class="text-slate-400 border-b border-slate-200 uppercase tracking-widest text-[10px]"><tr><th class="pb-3 px-2">Token</th><th class="pb-3 px-2">Tipe & Status</th><th class="pb-3 px-2 text-right">Aksi</th></tr></thead><tbody id="tbody-token" class="divide-y divide-slate-100 font-medium text-slate-700"></tbody></table></div>
+                            <div class="md:col-span-2">
+                                <label class="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Jumlah Token</label>
+                                <input type="number" id="tokenJumlah" min="1" max="500" value="1" required class="w-full border border-slate-200 rounded-xl px-4 py-3.5 bg-slate-50 outline-none text-sm font-black text-blue-600 shadow-sm focus:bg-white focus:border-blue-500 text-center transition">
+                            </div>
+                            <div class="md:col-span-2">
+                                <button type="submit" class="w-full bg-[#0d6efd] text-white font-bold py-3.5 rounded-xl shadow-[0_4px_15px_-3px_rgba(13,110,253,0.4)] hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2 text-sm"><i class="fas fa-cogs"></i> Generate</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- TABLE SECTION -->
+                    <div class="bg-white border border-slate-200 rounded-[1.5rem] shadow-sm flex flex-col">
+                        <!-- Toolbar (Ditambahkan ID token-toolbar) -->
+                        <div id="token-toolbar" class="p-5 border-b border-slate-100 flex flex-col gap-4">
+                            <!-- Row 1: Tabs -->
+                            <div class="flex gap-2 overflow-x-auto no-scrollbar w-full pb-2 lg:pb-0" id="token-filter-tabs">
+                                <button onclick="filterToken('all')" class="token-tab-btn px-4 py-2.5 bg-[#0d6efd] text-white text-[11px] font-bold uppercase tracking-wider rounded-full whitespace-nowrap shadow-sm transition">Semua Token</button>
+                                <button onclick="filterToken('unused')" class="token-tab-btn px-4 py-2.5 bg-slate-100 text-slate-500 hover:bg-slate-200 text-[11px] font-bold uppercase tracking-wider rounded-full whitespace-nowrap transition border border-transparent">Belum Terpakai</button>
+                                <button onclick="filterToken('used')" class="token-tab-btn px-4 py-2.5 bg-slate-100 text-slate-500 hover:bg-slate-200 text-[11px] font-bold uppercase tracking-wider rounded-full whitespace-nowrap transition border border-transparent">Sudah Terpakai</button>
+                                <button onclick="filterToken('susulan')" class="token-tab-btn px-4 py-2.5 bg-slate-100 text-slate-500 hover:bg-slate-200 text-[11px] font-bold uppercase tracking-wider rounded-full whitespace-nowrap transition border border-transparent">Susulan</button>
+                            </div>
+                            
+                            <!-- Row 2: Paket Filter & Search -->
+                            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                                <div class="relative w-full lg:w-1/3">
+                                    <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400"><i class="fas fa-filter text-xs"></i></span>
+                                    <select id="tokenFilterPaket" onchange="filterTokenByPaket()" class="w-full pl-10 pr-8 py-2.5 rounded-full bg-slate-50 border border-slate-200 text-xs font-semibold focus:outline-none focus:border-blue-500 focus:bg-white transition shadow-inner appearance-none cursor-pointer">
+                                        <option value="all">Semua Paket Hari Ini</option>
+                                    </select>
+                                </div>
+                                <div class="relative w-full lg:w-1/3">
+                                    <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400"><i class="fas fa-search text-xs"></i></span>
+                                    <input type="text" id="tokenSearch" oninput="currentTokenPage = 1; renderTableTokenOnly()" class="w-full pl-10 pr-4 py-2.5 rounded-full bg-slate-50 border border-slate-200 text-xs font-semibold focus:outline-none focus:border-blue-500 focus:bg-white transition shadow-inner" placeholder="Cari token, NISN, siswa...">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Table -->
+                        <div class="overflow-x-auto">
+                            <!-- [Tabel Biarkan Sama Saja] -->
+                            <table class="w-full text-left text-sm whitespace-nowrap">
+                                <thead class="bg-slate-50 border-b border-slate-200 text-slate-400 font-black uppercase text-[10px] tracking-wider">
+                                    <tr>
+                                        <th class="p-4 pl-6 cursor-pointer hover:bg-slate-100 transition">Token Akses <i class="fas fa-filter text-slate-300 ml-1"></i></th>
+                                        <th class="p-4 cursor-pointer hover:bg-slate-100 transition">Paket Ujian <i class="fas fa-filter text-slate-300 ml-1"></i></th>
+                                        <th class="p-4 cursor-pointer hover:bg-slate-100 transition">Status <i class="fas fa-filter text-slate-300 ml-1"></i></th>
+                                        <th class="p-4 cursor-pointer hover:bg-slate-100 transition">Status Terpakai <i class="fas fa-filter text-slate-300 ml-1"></i></th>
+                                        <th class="p-4 cursor-pointer hover:bg-slate-100 transition">Dipakai Oleh <i class="fas fa-filter text-slate-300 ml-1"></i></th>
+                                        <th class="p-4 pr-6 text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-token" class="divide-y divide-slate-100 font-medium text-slate-700">
+                                    <!-- Disuntik via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Footer Pagination (Ditambahkan ID token-footer dan tombol Excel) -->
+                        <div id="token-footer" class="p-5 border-t border-slate-100 bg-slate-50 rounded-b-[1.5rem] flex flex-col lg:flex-row justify-between items-center gap-4">
+                            <div class="flex items-center gap-3">
+                                <p class="text-xs text-slate-500 font-medium"><i class="fas fa-info-circle mr-1 text-blue-400"></i> Menampilkan <span id="token-count-display" class="font-bold text-slate-800">0</span> dari <span id="token-total-display" class="font-bold text-slate-800">0</span> tiket.</p>
+                                <select id="tokenPageSize" onchange="changeTokenPageSize()" class="bg-white border border-slate-200 text-xs font-bold text-slate-600 rounded-lg px-2 py-1 outline-none focus:border-blue-500 cursor-pointer shadow-sm">
+                                    <option value="25" selected>25 per hal</option>
+                                    <option value="50">50 per hal</option>
+                                    <option value="100">100 per hal</option>
+                                </select>
+                            </div>
+                            
+                            <div class="flex items-center gap-3">
+                                <button onclick="changeTokenPage(-1)" id="btn-prev-token" class="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-100 text-xs font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"><i class="fas fa-chevron-left"></i></button>
+                                <span class="text-xs font-bold text-slate-600">Hal <span id="token-page-display">1</span> / <span id="token-max-page">1</span></span>
+                                <button onclick="changeTokenPage(1)" id="btn-next-token" class="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-100 text-xs font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"><i class="fas fa-chevron-right"></i></button>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <button onclick="exportExcelToken()" class="text-[11px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 uppercase tracking-wider"><i class="fas fa-file-excel"></i> Export Excel</button>
+                                <button onclick="printTabelToken()" class="text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 uppercase tracking-wider"><i class="fas fa-print"></i> Cetak Tabel</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1034,6 +1195,7 @@
         let dbSoal = [];
         let dbToken = [];
         let dbHasil = [];
+        let dbJumlahSoal = {}; // <--- TAMBAHKAN BARIS INI
         
         let sessionUser = null; 
 
@@ -1101,7 +1263,7 @@
                         }
                     }
 
-                    dbToken = []; const tData = res.data.token; for(let i=1; i<tData.length; i++) dbToken.push({ token: tData[i][0], paketId: tData[i][1], jenis: tData[i][2], isUsed: tData[i][3], usedBy: tData[i][4] });
+                    dbToken = []; const tData = res.data.token; for(let i=1; i<tData.length; i++) dbToken.push({ token: tData[i][0], paketId: tData[i][1], jenis: tData[i][2], isUsed: tData[i][3], usedBy: tData[i][4], usedTime: tData[i][5] });
                     
                     // Gunakan parseSafe pada detail jawaban dan koreksi esai
                     dbHasil = []; const hData = res.data.hasil; for(let i=1; i<hData.length; i++) dbHasil.push({ wkt: hData[i][0], id: hData[i][1], siswaId: hData[i][2], nama: hData[i][3], kelas: hData[i][4], paketId: hData[i][5], mapel: hData[i][6], skor: hData[i][7], durasi: hData[i][8], detail: parseSafe(hData[i][9], {}), koreksiEsai: parseSafe(hData[i][10], {}) });
@@ -1119,7 +1281,10 @@
                     
                     dbPaket = []; const pData = res.data.paket; for(let i=1; i<pData.length; i++) dbPaket.push({ id: pData[i][0], nama: pData[i][1], mapel: pData[i][2], durasi: pData[i][3], waktuMulai: pData[i][4], batasWaktu: pData[i][5], targetKelas: parseSafe(pData[i][6], [pData[i][6]]), aktif: pData[i][7] });
                     dbHasil = []; const hData = res.data.hasil; for(let i=1; i<hData.length; i++) dbHasil.push({ wkt: hData[i][0], id: hData[i][1], siswaId: hData[i][2], nama: hData[i][3], kelas: hData[i][4], paketId: hData[i][5], mapel: hData[i][6], skor: hData[i][7], durasi: hData[i][8], detail: parseSafe(hData[i][9], {}), koreksiEsai: parseSafe(hData[i][10], {}) });
-                    dbToken = []; const tData = res.data.token; for(let i=1; i<tData.length; i++) dbToken.push({ token: tData[i][0], paketId: tData[i][1], jenis: tData[i][2], isUsed: tData[i][3], usedBy: tData[i][4] });
+                    dbToken = []; const tData = res.data.token; for(let i=1; i<tData.length; i++) dbToken.push({ token: tData[i][0], paketId: tData[i][1], jenis: tData[i][2], isUsed: tData[i][3], usedBy: tData[i][4], usedTime: tData[i][5] });
+                    
+                    // --- SIMPAN REKAP JUMLAH SOAL ---
+                    dbJumlahSoal = res.data.jumlahSoal || {};
                 }
             } catch(e) { console.error("Gagal fetch jadwal:", e); }
         };
@@ -1573,7 +1738,10 @@
             document.getElementById('info-ujian-nama').innerText = p.nama;
             document.getElementById('info-ujian-mapel').innerText = p.mapel;
             document.getElementById('info-ujian-durasi').innerText = `${p.durasi} Menit`;
-            document.getElementById('info-ujian-total').innerText = `${dbSoal.filter(s=>s.paketId===p.id).length} Soal`;
+            
+            // --- REVISI: Ambil jumlah dari dbJumlahSoal yang ringan ---
+            const totalSoal = dbJumlahSoal[p.id] || 0;
+            document.getElementById('info-ujian-total').innerText = `${totalSoal} Soal`;
             
             if(isLate) {
                 document.getElementById('box-token-susulan').classList.remove('hidden');
@@ -1595,12 +1763,27 @@
             let tokenData = null;
             if(isLate) {
                 const inputToken = document.getElementById('inputTokenSusulan').value.trim().toUpperCase();
+                
+                // FITUR BARU: Update token terbaru dari database sebelum memvalidasi input
+                document.getElementById('view-loading').classList.remove('hidden');
+                document.getElementById('loading-text').innerText = "Memverifikasi Token...";
+                await window.tarikJadwalSiswa(); 
+                
                 tokenData = dbToken.find(t => String(t.token).toUpperCase() === inputToken && t.paketId === tempPaketToStart.id && t.jenis === 'Susulan');
-                if(!tokenData) return showToast("Token Susulan tidak valid atau salah paket!", "error");
-                if(tokenData.isUsed) return showToast("Token ini sudah dipakai oleh " + tokenData.usedBy, "error");
+                
+                if(!tokenData) {
+                    document.getElementById('view-loading').classList.add('hidden');
+                    return showToast("Token Susulan tidak valid atau salah paket!", "error");
+                }
+                if(tokenData.isUsed) {
+                    document.getElementById('view-loading').classList.add('hidden');
+                    return showToast("Token ini sudah dipakai oleh " + tokenData.usedBy, "error");
+                }
                 
                 // Gunakan Token
-                tokenData.isUsed = true; tokenData.usedBy = currentSiswa.nama;
+                tokenData.isUsed = true; 
+                tokenData.usedBy = currentSiswa.nama;
+                tokenData.usedTime = new Date().toLocaleString('id-ID', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + ' WIB';
                 fetchGAS('updateStatusToken', tokenData);
             }
             
@@ -1608,6 +1791,7 @@
             tutupInfoUjian();
 
             // === LAZY LOAD: Tarik Soal Hanya Saat Ujian Dimulai ===
+            // ... (KODE DI BAWAHNYA BIARKAN SAMA PERSIS SEPERTI SEBELUMNYA) ...
             document.getElementById('view-loading').classList.remove('hidden');
             document.getElementById('loading-text').innerText = "Mengunduh Lembar Soal...";
             
@@ -1888,6 +2072,7 @@
                 html += `<div class="flex flex-col lg:flex-row gap-8">`;
                 
                 // --- Kolom Kiri ---
+                // --- Kolom Kiri ---
                 html += `<div class="flex-1 space-y-4">
                     <h4 class="text-[10px] font-black text-indigo-700 uppercase tracking-widest bg-indigo-50 border border-indigo-100 px-3 py-2 rounded-lg text-center shadow-sm">Kolom Pernyataan</h4>`;
                 
@@ -1897,8 +2082,15 @@
                     
                     (soal.kanan || []).forEach(kn => {
                         const txtKn = kn.teks.length > 40 ? kn.teks.substring(0,40)+'...' : kn.teks;
-                        optHtml += `<option value="${kn.id}" ${ans===kn.id?'selected':''}>${kn.id} - ${txtKn}</option>`;
+                        
+                        // FITUR BARU: Kunci opsi di dropdown jika sudah dipilih di baris lain (Siswa)
+                        const isUsedByOther = usedAnswers.includes(kn.id) && ans !== kn.id;
+                        const disabledStr = isUsedByOther ? 'disabled' : '';
+                        const labelStr = isUsedByOther ? `${kn.id} - (Terpakai)` : `${kn.id} - ${txtKn}`;
+                        
+                        optHtml += `<option value="${kn.id}" ${ans===kn.id?'selected':''} ${disabledStr}>${labelStr}</option>`;
                     });
+                    
                     const changeEvt = isPreview ? '' : `simpanJawabanSiswa({idKiri:'${k.id}', idKanan:this.value}, 'JODOH')`;
                     
                     // FITUR BARU: Dropdown menjadi abu-abu dan teks dicoret jika sudah dijawab
@@ -2075,24 +2267,58 @@
             if (e.key === "F12" || e.keyCode === 123 || ((e.ctrlKey || e.metaKey) && e.shiftKey && ['i','j','c'].includes(e.key.toLowerCase()))) { e.preventDefault(); triggerCheat(); return false; }
         });
 
-        function submitLatarBelakang() {
-            if (!currentSiswa || !activePaket || isExamFinished) return;
-            isExamFinished = true; let durasiDetik = waktuMulaiUjian ? Math.floor((new Date() - waktuMulaiUjian) / 1000) : 0;
-            const durasiStr = `${Math.floor(durasiDetik / 60)} Menit ${durasiDetik % 60} Detik (Keluar Paksa)`;
-            currentSiswa.statusUjian = true;
-            const finalData = { id: Date.now(), siswaId: currentSiswa.id || currentSiswa.username, nama: currentSiswa.nama, kelas: currentSiswa.kelas, paketId: activePaket.id, mapel: activePaket.mapel, detail: jawabanSiswa, durasi: durasiStr, koreksiEsai: {} };
-            finalData.skor = hitungSkorTotal(finalData);
-            
-            kirimLogSistem("Auto-Submit (Keluar Paksa)", `Sistem menutup paksa ujian ${activePaket.nama} dengan skor ${finalData.skor}`); // PENAMBAHAN LOG
+        // --- REVISI: PENANGANAN REFRESH (F5) / TUTUP TAB ---
+        let isSavingOnExit = false; // Gembok penahan Double-Submit
 
-            if (GAS_URL) {
-                fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'simpanHasil', data: finalData }), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, keepalive: true }).catch(e => console.log(e));
-                fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'simpanSiswa', data: currentSiswa }), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, keepalive: true }).catch(e => console.log(e));
+        function amankanDataSebelumKeluar() {
+            // Cek apakah ujian aktif dan pastikan fungsi ini belum pernah dieksekusi sebelumnya
+            if (!isExamActive || !currentSiswa || !activePaket || isExamFinished || isSavingOnExit) return;
+            
+            isSavingOnExit = true; // KUNCI GEMBOK: Mencegah eksekusi ganda jika browser mengirim 2 sinyal sekaligus
+            
+            // 1. Simpan seluruh jawaban & waktu terakhir ke memori browser
+            simpanStateUjian();
+            
+            // 2. Anggap refresh/tutup tab sebagai 1x pelanggaran
+            currentSiswa.cheatCount = (currentSiswa.cheatCount || 0) + 1;
+            
+            if (currentSiswa.cheatCount >= 6) {
+                // HANYA kumpulkan paksa jika ini sudah pelanggaran ke-6 (Fatal)
+                isExamFinished = true;
+                let durasiDetik = waktuMulaiUjian ? Math.floor((new Date() - waktuMulaiUjian) / 1000) : 0;
+                const durasiStr = `${Math.floor(durasiDetik / 60)} Menit ${durasiDetik % 60} Detik (Keluar Paksa)`;
+                currentSiswa.statusUjian = true;
+                const finalData = { id: Date.now(), siswaId: currentSiswa.id || currentSiswa.username, nama: currentSiswa.nama, kelas: currentSiswa.kelas, paketId: activePaket.id, mapel: activePaket.mapel, detail: jawabanSiswa, durasi: durasiStr, koreksiEsai: {} };
+                finalData.skor = hitungSkorTotal(finalData);
+                
+                if (GAS_URL) {
+                    fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'simpanHasil', data: finalData }), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, keepalive: true }).catch(e => console.log(e));
+                }
+                sessionStorage.removeItem(`exam_state_${currentSiswa.id}_${activePaket.id}`);
+            } else {
+                // 3. Jika belum 6 kali, blokir layar (jika >=3) tapi JANGAN disubmit ke Hasil Ujian
+                if (currentSiswa.cheatCount >= 3) {
+                    currentSiswa.isBlocked = true;
+                }
+                
+                sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
+                if (GAS_URL) {
+                    fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'simpanSiswa', data: currentSiswa }), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, keepalive: true }).catch(e => console.log(e));
+                }
             }
-            sessionStorage.removeItem(`exam_state_${currentSiswa.id}_${activePaket.id}`);
         }
-        window.addEventListener('beforeunload', function (e) { if (currentSiswa && activePaket && !isExamFinished) submitLatarBelakang(); });
-        window.addEventListener('pagehide', function (e) { if (currentSiswa && activePaket && !isExamFinished) submitLatarBelakang(); });
+
+        // Pemicu saat tombol Refresh (F5), Back, atau Tutup Browser ditekan
+        window.addEventListener('beforeunload', function (e) { 
+            if (isExamActive && currentSiswa && activePaket && !isExamFinished) {
+                amankanDataSebelumKeluar();
+            } 
+        });
+        window.addEventListener('pagehide', function (e) { 
+            if (isExamActive && currentSiswa && activePaket && !isExamFinished) {
+                amankanDataSebelumKeluar();
+            } 
+        });
 
         function bukaModalSelesai() { 
             if (!activePaket || !waktuMulaiUjian) return;
@@ -2206,41 +2432,64 @@
             }, 1000);
         }
 
-        function bukaBlokir(e) {
+        async function bukaBlokir(e) {
             e.preventDefault(); 
             const inputToken = document.getElementById('inputTokenBlokir').value.trim().toUpperCase();
-            
-            // Perbaikan: Hapus pengecekan tempPaketToStart karena memori ini kosong saat terblokir
-            const tokenData = dbToken.find(t => String(t.token).toUpperCase() === inputToken && t.jenis === 'Buka_Blokir');
-            
-            if (!tokenData) return showToast("Token Buka Blokir tidak valid!", "error"); 
-            if (tokenData.isUsed) return showToast("Token sudah terpakai!", "error");
-            
-            tokenData.isUsed = true; 
-            tokenData.usedBy = currentSiswa.nama; 
-            fetchGAS('updateStatusToken', tokenData);
-            
-            // JANGAN RESET cheatCount ke 0, agar kecurangan ke-5 bisa memicu Selesai Ujian
-            currentSiswa.isBlocked = false; 
-            sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
-            fetchGAS('simpanSiswa', currentSiswa);
-            
-            kirimLogSistem("Buka Blokir", `Siswa berhasil membuka blokir menggunakan token khusus.`);
+            if (!inputToken) return;
 
-            document.getElementById('inputTokenBlokir').value = ''; 
-            
-            if (activePaket) {
-                showToast("Blokir dibuka. Peringatan Terakhir!", "success");
-                enterFullscreen(); 
-                isExamActive = true; 
-                document.getElementById('view-exam').classList.add('exam-active-mode'); 
-                mulaiTimerSiswa(); 
-                switchView('view-exam');
-            } else {
-                showToast("Blokir dibuka. Silakan Lanjutkan ujian dari Beranda!", "success");
-                isExamActive = false;
-                renderDashboardSiswa();
-                switchView('view-student-dashboard');
+            // Ubah tombol jadi loading
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memeriksa Token...';
+            btn.disabled = true;
+
+            try {
+                // FITUR BARU: Tarik data token paling baru dari server secara diam-diam
+                await window.tarikJadwalSiswa();
+
+                const tokenData = dbToken.find(t => String(t.token).toUpperCase() === inputToken && t.jenis === 'Buka_Blokir');
+                
+                if (!tokenData) {
+                    showToast("Token Buka Blokir tidak valid!", "error"); 
+                    return;
+                }
+                if (tokenData.isUsed) {
+                    showToast("Token sudah terpakai!", "error");
+                    return;
+                }
+                
+                // Eksekusi buka blokir
+                tokenData.isUsed = true; 
+                tokenData.usedBy = currentSiswa.nama; 
+                tokenData.usedTime = new Date().toLocaleString('id-ID', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + ' WIB';
+                fetchGAS('updateStatusToken', tokenData);
+                
+                currentSiswa.isBlocked = false; 
+                sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
+                fetchGAS('simpanSiswa', currentSiswa);
+                kirimLogSistem("Buka Blokir", `Siswa berhasil membuka blokir menggunakan token khusus.`);
+
+                document.getElementById('inputTokenBlokir').value = ''; 
+                
+                if (activePaket) {
+                    showToast("Blokir dibuka. Peringatan Terakhir!", "success");
+                    enterFullscreen(); 
+                    isExamActive = true; 
+                    document.getElementById('view-exam').classList.add('exam-active-mode'); 
+                    mulaiTimerSiswa(); 
+                    switchView('view-exam');
+                } else {
+                    showToast("Blokir dibuka. Silakan Lanjutkan ujian dari Beranda!", "success");
+                    isExamActive = false;
+                    renderDashboardSiswa();
+                    switchView('view-student-dashboard');
+                }
+            } catch (err) {
+                showToast("Gagal memverifikasi token. Periksa koneksi.", "error");
+            } finally {
+                // Kembalikan tombol seperti semula
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }
         }
 
@@ -2297,7 +2546,7 @@
                 if(res.status === "success" && res.data) {
                     const parseSafe = (val, fallback) => { try { return JSON.parse(val); } catch(e) { return fallback; } };
                     
-                    dbToken = []; const tData = res.data.token; for(let i=1; i<tData.length; i++) dbToken.push({ token: tData[i][0], paketId: tData[i][1], jenis: tData[i][2], isUsed: tData[i][3], usedBy: tData[i][4] });
+                    dbToken = []; const tData = res.data.token; for(let i=1; i<tData.length; i++) dbToken.push({ token: tData[i][0], paketId: tData[i][1], jenis: tData[i][2], isUsed: tData[i][3], usedBy: tData[i][4], usedTime: tData[i][5] });
                     dbSiswa = []; const siData = res.data.siswa; for(let i=1; i<siData.length; i++) dbSiswa.push({ id: siData[i][0], nama: siData[i][1], username: siData[i][2], password: String(siData[i][3]), kelas: siData[i][4], statusUjian: siData[i][5], cheatCount: siData[i][6], isBlocked: siData[i][7] });
                     dbHasil = []; const hData = res.data.hasil; for(let i=1; i<hData.length; i++) dbHasil.push({ wkt: hData[i][0], id: hData[i][1], siswaId: hData[i][2], nama: hData[i][3], kelas: hData[i][4], paketId: hData[i][5], mapel: hData[i][6], skor: hData[i][7], durasi: hData[i][8], detail: parseSafe(hData[i][9], {}), koreksiEsai: parseSafe(hData[i][10], {}) });
                     dbPaket = []; const pData = res.data.paket; for(let i=1; i<pData.length; i++) dbPaket.push({ id: pData[i][0], nama: pData[i][1], mapel: pData[i][2], durasi: pData[i][3], waktuMulai: pData[i][4], batasWaktu: pData[i][5], targetKelas: parseSafe(pData[i][6], [pData[i][6]]), aktif: pData[i][7] });
@@ -2979,48 +3228,357 @@
         }
 
         // --- ADMIN: TOKEN (SUPERADMIN ONLY) ---
+        let currentTokenFilter = 'all';
+        let currentTokenPaketFilter = 'all';
+        let currentTokenPage = 1;
+        let TOKEN_PER_PAGE = 25; // Default diubah jadi 25
+
+        // FITUR BARU: Mengganti jumlah per halaman
+        function changeTokenPageSize() {
+            TOKEN_PER_PAGE = parseInt(document.getElementById('tokenPageSize').value) || 25;
+            currentTokenPage = 1; // Kembali ke halaman 1 setiap ganti ukuran
+            renderTableTokenOnly();
+        }
+
+        function filterToken(type) {
+            currentTokenFilter = type;
+            currentTokenPage = 1; // Reset halaman
+            // Update UI Tab Aktif
+            document.querySelectorAll('.token-tab-btn').forEach(btn => {
+                btn.className = 'token-tab-btn px-4 py-2.5 bg-slate-100 text-slate-500 hover:bg-slate-200 text-[11px] font-bold uppercase tracking-wider rounded-full whitespace-nowrap transition border border-transparent';
+            });
+            const activeMap = {'all':'Semua Token', 'unused':'Belum Terpakai', 'used':'Sudah Terpakai', 'susulan':'Susulan'};
+            const activeBtn = Array.from(document.querySelectorAll('.token-tab-btn')).find(b => b.innerText.trim() === activeMap[type].toUpperCase());
+            if(activeBtn) {
+                activeBtn.className = 'token-tab-btn px-4 py-2.5 bg-[#0d6efd] text-white text-[11px] font-bold uppercase tracking-wider rounded-full whitespace-nowrap shadow-sm transition';
+            }
+            renderTableTokenOnly();
+        }
+
+        function filterTokenByPaket() {
+            currentTokenPaketFilter = document.getElementById('tokenFilterPaket').value;
+            currentTokenPage = 1; // Reset halaman
+            renderTableTokenOnly();
+        }
+
+        function changeTokenPage(delta) {
+            currentTokenPage += delta;
+            renderTableTokenOnly();
+        }
+
+        function copyToken(token) {
+            navigator.clipboard.writeText(token).then(() => {
+                showToast("Token disalin: " + token, "success");
+            }).catch(err => {
+                showToast("Gagal menyalin token", "error");
+            });
+        }
+
         function renderFormToken() {
-            const selectPaket = document.getElementById('tokenPaketId');
-            if(selectPaket) {
-                const currentVal = selectPaket.value;
-                selectPaket.innerHTML = '<option value="" disabled selected>-- Pilih Paket Ujian --</option>';
-                dbPaket.forEach(p => {
-                    selectPaket.innerHTML += `<option value="${p.id}">${p.nama} (${p.mapel})</option>`;
-                });
-                if(currentVal) selectPaket.value = currentVal;
-            }
+            // Update Dropdown Paket (Untuk Form Generator & Filter)
+            const selectPaket = document.getElementById('tokenPaketId');
+            const filterPaket = document.getElementById('tokenFilterPaket');
+            
+            if(selectPaket) {
+                const currentVal = selectPaket.value;
+                const currentFilterVal = filterPaket ? filterPaket.value : 'all';
+                
+                let optionsHtml = '<option value="" disabled selected>-- Pilih Paket Ujian --</option>';
+                let filterOptionsHtml = '<option value="all">Semua Paket Hari Ini</option>';
+                
+                // Variabel untuk mengecek tanggal hari ini
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                
+                dbPaket.forEach(p => {
+                    // Untuk Generator: Tampilkan semua paket (Bebas buat token kapan saja)
+                    optionsHtml += `<option value="${p.id}">${p.nama} (${p.mapel})</option>`;
+                    
+                    // Logika pengecekan "Hari Ini"
+                    const startDate = new Date(p.waktuMulai);
+                    const pDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+                    const isHariIni = pDate.getTime() === today.getTime();
+                    
+                    // Pengecekan ada soal
+                    const adaSoal = dbSoal.some(s => s.paketId === p.id);
+                    
+                    // Untuk Filter: HANYA tampilkan paket HARI INI yang ADA SOALNYA
+                    if (isHariIni && adaSoal) {
+                        filterOptionsHtml += `<option value="${p.id}">${p.nama}</option>`;
+                    }
+                });
+                
+                selectPaket.innerHTML = optionsHtml;
+                if(currentVal) selectPaket.value = currentVal;
+                
+                if(filterPaket) {
+                    filterPaket.innerHTML = filterOptionsHtml;
+                    filterPaket.value = currentFilterVal;
+                }
+            }
 
-            const tbody = document.getElementById('tbody-token'); tbody.innerHTML = '';
-            const tSusulan = dbToken.filter(t => t.jenis !== 'Reguler'); // Hanya tampilkan token khusus
-            if(tSusulan.length === 0) return tbody.innerHTML = '<tr><td colspan="3" class="p-6 text-center text-slate-500">Tidak ada token khusus aktif</td></tr>';
+            // Hitung Statistik Dashboard Mini
+            const tSusulan = dbToken.filter(t => t.jenis !== 'Reguler'); 
+            const countDipakai = tSusulan.filter(t => t.isUsed).length;
+            const countSisa = tSusulan.filter(t => !t.isUsed).length;
+            const countSusulan = tSusulan.filter(t => t.jenis === 'Susulan').length;
+            const countBlokirCase = dbSiswa.filter(s => s.isBlocked).length;
+            const totalMapelAktif = new Set(tSusulan.map(t => t.paketId)).size;
 
-            tSusulan.forEach(t => {
-                const stat = t.jenis === 'Susulan' ? '<span class="bg-amber-50 text-amber-600 px-3 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase border border-amber-100"><i class="fas fa-history mr-1"></i> Susulan</span>' : '<span class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase border border-red-100"><i class="fas fa-unlock-alt mr-1"></i> Buka Blokir</span>';
-                const usedInfo = t.isUsed ? `<span class="block mt-1.5 text-[10px] text-red-500 font-bold"><i class="fas fa-user-lock"></i> Terpakai: ${t.usedBy}</span>` : `<span class="block mt-1.5 text-[10px] text-emerald-500 font-bold"><i class="fas fa-check"></i> Belum Dipakai</span>`;
-                const pkt = dbPaket.find(p => p.id === t.paketId);
-                const paketLabel = `<span class="block mt-1.5 text-[10px] font-bold text-indigo-500 truncate max-w-[150px]"><i class="fas fa-box text-slate-400"></i> ${pkt ? pkt.nama : t.paketId}</span>`;
-                
-                tbody.innerHTML += `<tr class="hover:bg-slate-50/50 transition border-b border-slate-50"><td class="py-4 px-2"><span class="font-mono font-black text-[#0f172a] text-sm tracking-[0.2em] bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm">${t.token}</span>${paketLabel}</td><td class="py-4 px-2">${stat} ${usedInfo}</td><td class="py-4 px-2 text-right"><button onclick="bukaAdminConfirm('Hapus Token?', 'Token tidak akan bisa digunakan lagi.', () => { dbToken = dbToken.filter(x=>String(x.token).toUpperCase() !== '${String(t.token).toUpperCase()}'); fetchGAS('hapusToken', {token: '${String(t.token).toUpperCase()}'}); renderFormToken(); })" class="text-red-500 hover:text-white bg-red-50 hover:bg-red-500 w-8 h-8 inline-flex items-center justify-center rounded-lg transition text-xs border border-red-100 shadow-sm"><i class="fas fa-trash"></i></button></td></tr>`;
-            });
-        }
+            document.getElementById('stat-token-total').innerText = tSusulan.length;
+            document.getElementById('stat-token-paket').innerText = totalMapelAktif;
+            document.getElementById('stat-token-dipakai').innerText = countDipakai;
+            document.getElementById('stat-token-persen').innerText = tSusulan.length ? Math.round((countDipakai/tSusulan.length)*100) + '%' : '0%';
+            document.getElementById('stat-token-sisa').innerText = countSisa;
+            document.getElementById('stat-token-susulan').innerText = countSusulan;
+            document.getElementById('stat-token-blokir').innerText = countBlokirCase;
 
-        function buatToken(e) { 
-            e.preventDefault();
-            const jenisToken = document.getElementById('tokenJenis').value;
-            const paketId = document.getElementById('tokenPaketId').value;
-            if(!paketId) return showToast("Pilih paket ujian terlebih dahulu!", "error");
+            // Render Tabel
+            renderTableTokenOnly();
+        }
 
-            let tokenTerbuat = 0;
-            for(let i=0; i<10; i++) {
-                const newToken = Math.random().toString(36).substr(2,6).toUpperCase();
-                const tokenData = { token: newToken, paketId: paketId, jenis: jenisToken, isUsed: false, usedBy: null };
-                dbToken.push(tokenData);
-                fetchGAS("simpanToken", tokenData);
-                tokenTerbuat++;
-            }
-            renderFormToken();
-            showToast(`${tokenTerbuat} Token berhasil digenerate`, "success"); 
-        }
+        function renderTableTokenOnly() {
+            const tbody = document.getElementById('tbody-token'); 
+            tbody.innerHTML = '';
+            
+            let tSusulan = dbToken.filter(t => t.jenis !== 'Reguler'); 
+            
+            // 1. Logika Filter Tab
+            if (currentTokenFilter === 'unused') tSusulan = tSusulan.filter(t => !t.isUsed);
+            if (currentTokenFilter === 'used') tSusulan = tSusulan.filter(t => t.isUsed);
+            if (currentTokenFilter === 'susulan') tSusulan = tSusulan.filter(t => t.jenis === 'Susulan');
+
+            // 2. Logika Filter Paket
+            if (currentTokenPaketFilter !== 'all') {
+                tSusulan = tSusulan.filter(t => t.paketId === currentTokenPaketFilter);
+            }
+
+            // 3. Logika Search Bar
+            const searchQuery = (document.getElementById('tokenSearch')?.value || '').toLowerCase();
+            if(searchQuery) {
+                tSusulan = tSusulan.filter(t => {
+                    const pkt = dbPaket.find(p => p.id === t.paketId);
+                    const mapel = pkt ? pkt.nama.toLowerCase() : '';
+                    const user = (t.usedBy || '').toLowerCase();
+                    const token = t.token.toLowerCase();
+                    return mapel.includes(searchQuery) || user.includes(searchQuery) || token.includes(searchQuery);
+                });
+            }
+
+            // --- 4. PAGINATION LOGIC (Limit per 100) ---
+            const totalData = tSusulan.length;
+            const maxPage = Math.ceil(totalData / TOKEN_PER_PAGE) || 1;
+            
+            if (currentTokenPage > maxPage) currentTokenPage = maxPage;
+            if (currentTokenPage < 1) currentTokenPage = 1;
+
+            const startIndex = (currentTokenPage - 1) * TOKEN_PER_PAGE;
+            const endIndex = Math.min(startIndex + TOKEN_PER_PAGE, totalData);
+            
+            const currentData = tSusulan.slice(startIndex, endIndex);
+
+            // Update UI Teks Footer Pagination
+            const startDisplay = totalData === 0 ? 0 : startIndex + 1;
+            document.getElementById('token-count-display').innerText = `${startDisplay} - ${endIndex}`;
+            document.getElementById('token-total-display').innerText = totalData;
+            document.getElementById('token-page-display').innerText = currentTokenPage;
+            document.getElementById('token-max-page').innerText = maxPage;
+            
+            // Kunci tombol jika di limit halaman
+            const btnPrev = document.getElementById('btn-prev-token');
+            const btnNext = document.getElementById('btn-next-token');
+            if(btnPrev) btnPrev.disabled = currentTokenPage <= 1;
+            if(btnNext) btnNext.disabled = currentTokenPage >= maxPage;
+
+            if(currentData.length === 0) {
+                return tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400 font-medium border-b-0">Tidak ada data tiket token.</td></tr>';
+            }
+
+            // Render Baris
+            currentData.forEach(t => {
+                const pkt = dbPaket.find(p => p.id === t.paketId);
+                const namaPaketRaw = pkt ? pkt.nama : t.paketId;
+                const shortNamaPaket = namaPaketRaw.length > 35 ? namaPaketRaw.substring(0,35) + '...' : namaPaketRaw;
+
+                const isBlokir = t.jenis !== 'Susulan'; 
+                const statusTypeBg = isBlokir ? 'bg-red-50 text-red-500 border-red-100' : 'bg-amber-50 text-amber-600 border-amber-100';
+                const statusLabel = isBlokir ? 'Diblokir' : 'Susulan';
+                const badgeStatus = `<span class="${statusTypeBg} px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border flex items-center justify-center gap-1.5 w-[90px]"><i class="fas fa-ban text-[9px] opacity-70"></i> ${statusLabel}</span>`;
+
+                const usedBg = t.isUsed ? 'bg-blue-50 border-blue-100 text-blue-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600';
+                const usedIcon = t.isUsed ? 'fa-check text-blue-500' : 'fa-square text-emerald-500';
+                const usedLabel = t.isUsed ? 'Sudah Dipakai' : 'Belum Dipakai';
+                const badgeTerpakai = `<span class="${usedBg} px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border flex items-center justify-center gap-1.5 w-[120px]"><i class="fas ${usedIcon} text-[9px] opacity-70"></i> ${usedLabel}</span>`;
+                
+                let dipakaiOleh = '<span class="text-slate-300">-</span>';
+                if(t.isUsed) {
+                    const swa = dbSiswa.find(s => s.nama === t.usedBy);
+                    const userText = swa ? swa.username : 'NISN -';
+                    const kelasText = swa ? swa.kelas : '-';
+                    dipakaiOleh = `
+                        <div class="flex flex-col">
+                            <span class="font-bold text-slate-800 text-xs">${t.usedBy}</span>
+                            <span class="text-[9px] text-slate-400 font-semibold mt-1">NISN ${userText} • ${kelasText} • ${t.usedTime || ''}</span>
+                        </div>
+                    `;
+                }
+
+                tbody.innerHTML += `
+                <tr class="hover:bg-slate-50/80 transition border-b border-slate-100 group">
+                    <td class="p-4 pl-6 align-middle">
+                        <div class="flex items-center gap-3">
+                            <span class="font-mono font-black text-rose-500 text-sm tracking-[0.1em]">${t.token}</span>
+                            <button onclick="copyToken('${t.token}')" class="text-slate-300 hover:text-blue-500 transition focus:outline-none bg-white border border-slate-200 rounded p-1 shadow-sm"><i class="far fa-copy text-xs"></i></button>
+                        </div>
+                    </td>
+                    <td class="p-4 align-middle">
+                        <span class="font-bold text-slate-700 text-xs leading-tight block w-[200px] whitespace-normal" title="${namaPaketRaw}">${shortNamaPaket}</span>
+                    </td>
+                    <td class="p-4 align-middle">${badgeStatus}</td>
+                    <td class="p-4 align-middle">${badgeTerpakai}</td>
+                    <td class="p-4 align-middle">${dipakaiOleh}</td>
+                    <td class="p-4 pr-6 text-right align-middle">
+                        <div class="flex justify-end gap-2.5 opacity-50 group-hover:opacity-100 transition-opacity">
+                            <button onclick="bukaAdminConfirm('Hapus Token?', 'Token tidak akan bisa digunakan lagi.', () => { dbToken = dbToken.filter(x=>String(x.token).toUpperCase() !== '${String(t.token).toUpperCase()}'); fetchGAS('hapusToken', {token: '${String(t.token).toUpperCase()}'}); renderFormToken(); })" class="text-slate-400 hover:text-red-500 transition"><i class="far fa-trash-alt text-sm"></i></button>
+                        </div>
+                    </td>
+                </tr>`;
+            });
+        }
+
+        // FITUR BARU: Cetak Tabel Token (Matikan pagination sebentar agar kecetak semua)
+        function printTabelToken() {
+            const oldSize = TOKEN_PER_PAGE;
+            TOKEN_PER_PAGE = 9999; // Buka semua baris
+            renderTableTokenOnly();
+
+            document.body.classList.add('printing-token');
+            window.print();
+            
+            setTimeout(() => {
+                document.body.classList.remove('printing-token');
+                TOKEN_PER_PAGE = oldSize; // Kembalikan ke halaman awal (misal 25)
+                renderTableTokenOnly();
+            }, 1000);
+        }
+
+        // FITUR BARU: Export Excel Token
+        function exportExcelToken() {
+            showToast("Menyiapkan file Excel...", "info");
+            
+            // Replikasi filter yang sedang aktif di layar
+            let tSusulan = dbToken.filter(t => t.jenis !== 'Reguler'); 
+            
+            if (currentTokenFilter === 'unused') tSusulan = tSusulan.filter(t => !t.isUsed);
+            if (currentTokenFilter === 'used') tSusulan = tSusulan.filter(t => t.isUsed);
+            if (currentTokenFilter === 'susulan') tSusulan = tSusulan.filter(t => t.jenis === 'Susulan');
+            if (currentTokenFilter === 'blokir') tSusulan = tSusulan.filter(t => t.jenis === 'Buka_Blokir');
+
+            if (currentTokenPaketFilter !== 'all') {
+                tSusulan = tSusulan.filter(t => t.paketId === currentTokenPaketFilter);
+            }
+
+            const searchQuery = (document.getElementById('tokenSearch')?.value || '').toLowerCase();
+            if(searchQuery) {
+                tSusulan = tSusulan.filter(t => {
+                    const pkt = dbPaket.find(p => p.id === t.paketId);
+                    const mapel = pkt ? pkt.nama.toLowerCase() : '';
+                    const user = (t.usedBy || '').toLowerCase();
+                    const token = t.token.toLowerCase();
+                    return mapel.includes(searchQuery) || user.includes(searchQuery) || token.includes(searchQuery);
+                });
+            }
+
+            if (tSusulan.length === 0) return showToast("Tidak ada data token untuk diexport", "error");
+
+            const excelData = [];
+            tSusulan.forEach((t, idx) => {
+                const pkt = dbPaket.find(p => p.id === t.paketId);
+                const namaPaket = pkt ? pkt.nama : t.paketId;
+                const mapel = pkt ? pkt.mapel : '-';
+                const status = t.jenis === 'Susulan' ? 'Susulan' : 'Buka Blokir';
+                const terpakai = t.isUsed ? 'Sudah Dipakai' : 'Belum Dipakai';
+                
+                let userSiswa = '-';
+                let nisnSiswa = '-';
+                let kelasSiswa = '-';
+                
+                if(t.isUsed) {
+                    const swa = dbSiswa.find(s => s.nama === t.usedBy);
+                    userSiswa = t.usedBy;
+                    nisnSiswa = swa ? swa.username : '-';
+                    kelasSiswa = swa ? swa.kelas : '-';
+                }
+
+                // Masukkan data ke array Excel
+                excelData.push({
+                    "No": idx + 1,
+                    "Token Akses": t.token,
+                    "Paket Ujian": namaPaket,
+                    "Mata Pelajaran": mapel,
+                    "Kategori Token": status,
+                    "Status Terpakai": terpakai,
+                    "Nama Siswa": userSiswa,
+                    "NISN Siswa": nisnSiswa,
+                    "Kelas": kelasSiswa,
+                    "Waktu Dipakai": t.usedTime || '-'
+                });
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(excelData);
+            
+            // Pengaturan lebar kolom agar excel rapi saat diunduh
+            worksheet['!cols'] = [
+                { wch: 5 }, { wch: 15 }, { wch: 35 }, { wch: 20 }, 
+                { wch: 15 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, 
+                { wch: 10 }, { wch: 20 }
+            ];
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Riwayat Token");
+            
+            const fileName = `Data_Token_CBT_${new Date().getTime()}.xlsx`;
+            XLSX.writeFile(workbook, fileName);
+            showToast("File Excel Token berhasil diunduh!", "success");
+        }
+
+        async function buatToken(e) { 
+            e.preventDefault();
+            const jenisToken = document.getElementById('tokenJenis').value;
+            const paketId = document.getElementById('tokenPaketId').value;
+            const jumlahToken = parseInt(document.getElementById('tokenJumlah').value) || 1;
+            
+            if(!paketId) return showToast("Pilih paket ujian terlebih dahulu!", "error");
+            if(jumlahToken > 500) return showToast("Maksimal generate 500 token sekaligus!", "error");
+
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Mengirim...';
+            btn.disabled = true;
+
+            let tokenTerbuat = 0;
+            let tokenArray = [];
+            
+            for(let i=0; i < jumlahToken; i++) {
+                const newToken = Math.random().toString(36).substr(2,6).toUpperCase();
+                const tokenData = { token: newToken, paketId: paketId, jenis: jenisToken, isUsed: false, usedBy: null, usedTime: null };
+                dbToken.push(tokenData); 
+                tokenArray.push(tokenData); 
+                tokenTerbuat++;
+            }
+            
+            try {
+                await fetchGAS("simpanBanyakToken", { tokens: tokenArray });
+                renderFormToken();
+                showToast(`${tokenTerbuat} Token berhasil dibuat!`, "success"); 
+            } catch (err) {
+                showToast("Gagal menyimpan token ke server", "error");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+        
         // --- STREAMING_CHUNK:Exam Package Logic... ---
         // --- ADMIN: PAKET SOAL ---
         function renderGridPaket() {
@@ -3380,7 +3938,7 @@
                         </div>
                     </div>
                     <div class="pl-14">
-                        <select class="jodoh-kunci-dropdown bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 rounded-xl px-4 py-3 text-sm outline-none cursor-pointer w-full hover:bg-emerald-100 transition appearance-none shadow-sm"><option value="">-- Pilih Kunci Pasangan --</option></select>
+                        <select class="jodoh-kunci-dropdown bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 rounded-xl px-4 py-3 text-sm outline-none cursor-pointer w-full hover:bg-emerald-100 transition appearance-none shadow-sm" onchange="syncJodohOptions()"><option value="">-- Pilih Kunci Pasangan --</option></select>
                     </div>
                     <button type="button" onclick="this.parentElement.remove(); syncJodohOptions(); updateJodohKiriNum();" class="absolute top-5 right-5 w-7 h-7 bg-white border border-slate-200 rounded-lg text-slate-300 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition flex items-center justify-center shadow-sm"><i class="fas fa-trash text-xs"></i></button>`;
                 cont.appendChild(div);
@@ -3410,21 +3968,37 @@
         function reindexJodohKanan() { const abjadList = ['A','B','C','D','E','F','G','H']; document.querySelectorAll('.jodoh-kanan-item').forEach((item, i) => { item.querySelector('.abjad-kanan').innerText = abjadList[i]; }); }
         function syncJodohOptions() {
             const abjadList = ['A','B','C','D','E','F','G','H'];
-            document.querySelectorAll('.jodoh-kunci-dropdown').forEach(dd => {
-                const prevVal = dd.value; let html = '<option value="">-- Pilih Kunci Pasangan --</option>';
+            const dropdowns = document.querySelectorAll('.jodoh-kunci-dropdown');
+            
+            // Kumpulkan semua kunci yang sudah dipilih saat ini
+            const usedKeys = Array.from(dropdowns).map(dd => dd.value).filter(val => val !== "");
+
+            dropdowns.forEach(dd => {
+                const prevVal = dd.value; 
+                let html = '<option value="">-- Pilih Kunci Pasangan --</option>';
                 const kananEditors = [];
+                
                 for(let i=0; i<8; i++){
                     const editorId = `jodoh-kanan-editor-${i}`;
                     if(quillEditors[editorId]){
                         kananEditors.push(quillEditors[editorId]);
                     }
                 }
+                
                 kananEditors.forEach((quill, i) => { 
                     let txt = quill.getText().trim();
                     txt = txt ? txt.substring(0,40)+'...' : `Opsi ${abjadList[i]}`; 
-                    html += `<option value="${abjadList[i]}">${abjadList[i]} - ${txt}</option>`; 
+                    
+                    // FITUR BARU: Kunci opsi jika sudah dipakai di baris lain (Admin)
+                    const isUsedByOther = usedKeys.includes(abjadList[i]) && prevVal !== abjadList[i];
+                    const disabledStr = isUsedByOther ? 'disabled' : '';
+                    const labelStr = isUsedByOther ? `${abjadList[i]} - (Sudah Dipakai)` : `${abjadList[i]} - ${txt}`;
+                    
+                    html += `<option value="${abjadList[i]}" ${disabledStr}>${labelStr}</option>`; 
                 });
-                dd.innerHTML = html; dd.value = prevVal; 
+                
+                dd.innerHTML = html; 
+                dd.value = prevVal; 
             });
         }
 
