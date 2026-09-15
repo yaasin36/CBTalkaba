@@ -1070,9 +1070,14 @@
             try {
                 const res = await fetchGAS("sinkronAwal");
                 if(res.status === "success" && res.data) {
+                    // Fungsi pengaman agar web tidak error jika data di Excel diketik manual
+                    const parseSafe = (val, fallback) => { try { return JSON.parse(val); } catch(e) { return fallback; } };
+                    
                     dbAdmin = []; const aData = res.data.admin; for(let i=1; i<aData.length; i++) dbAdmin.push({ id: aData[i][0], nama: aData[i][1], role: aData[i][2], mapel: aData[i][3], username: aData[i][4], password: String(aData[i][5]) });
                     dbSiswa = []; const siData = res.data.siswa; for(let i=1; i<siData.length; i++) dbSiswa.push({ id: siData[i][0], nama: siData[i][1], username: siData[i][2], password: String(siData[i][3]), kelas: siData[i][4], statusUjian: siData[i][5], cheatCount: siData[i][6], isBlocked: siData[i][7] });
-                    dbPaket = []; const pData = res.data.paket; for(let i=1; i<pData.length; i++) dbPaket.push({ id: pData[i][0], nama: pData[i][1], mapel: pData[i][2], durasi: pData[i][3], waktuMulai: pData[i][4], batasWaktu: pData[i][5], targetKelas: (pData[i][6]?JSON.parse(pData[i][6]):[]), aktif: pData[i][7] });
+                    
+                    // Gunakan parseSafe pada target kelas
+                    dbPaket = []; const pData = res.data.paket; for(let i=1; i<pData.length; i++) dbPaket.push({ id: pData[i][0], nama: pData[i][1], mapel: pData[i][2], durasi: pData[i][3], waktuMulai: pData[i][4], batasWaktu: pData[i][5], targetKelas: parseSafe(pData[i][6], [pData[i][6]]), aktif: pData[i][7] });
                     
                     // --- SISTEM PEMBACA SOAL & AUTO-REPAIR TAHAP 4 ---
                     dbSoal = []; 
@@ -1080,41 +1085,26 @@
                     for(let i=1; i<sData.length; i++) {
                         let rowData = sData[i];
                         let fullJsonString = "";
-                        
-                        // Kumpulkan potongan string JSON mulai dari kolom indeks ke-5 (Kolom F di Excel)
                         for(let j = 5; j < rowData.length; j++) {
-                            if(rowData[j] !== undefined && rowData[j] !== null) {
-                                fullJsonString += String(rowData[j]);
-                            }
+                            if(rowData[j] !== undefined && rowData[j] !== null) fullJsonString += String(rowData[j]);
                         }
-                        
                         if(fullJsonString.trim() !== "") {
                             let parsedSoal = null;
-                            try {
-                                parsedSoal = JSON.parse(fullJsonString);
-                            } catch (e) {
-                                // REPAIR 1: Perbaiki karakter Enter/Tab manual dan spasi aneh
+                            try { parsedSoal = JSON.parse(fullJsonString); } catch (e) {
                                 let fixStr = fullJsonString.replace(/\n/g, "\\n").replace(/\r/g, "").replace(/\t/g, "\\t");
-                                try {
-                                    parsedSoal = JSON.parse(fixStr);
-                                } catch (e2) {
-                                    // REPAIR 2: Potong string persis setelah kurung kurawal tutup terakhir }
+                                try { parsedSoal = JSON.parse(fixStr); } catch (e2) {
                                     let cleanStr = fixStr.substring(0, fixStr.lastIndexOf('}') + 1);
-                                    try {
-                                        parsedSoal = JSON.parse(cleanStr);
-                                    } catch (e3) {
-                                        console.warn(`[DIABAIKAN] Baris soal ke-${i+1} gagal dimuat akibat format JSON rusak total.`);
-                                    }
+                                    try { parsedSoal = JSON.parse(cleanStr); } catch (e3) { console.warn("Skip baris soal"); }
                                 }
                             }
-                            if (parsedSoal && parsedSoal.id) {
-                                dbSoal.push(parsedSoal);
-                            }
+                            if (parsedSoal && parsedSoal.id) dbSoal.push(parsedSoal);
                         }
                     }
 
                     dbToken = []; const tData = res.data.token; for(let i=1; i<tData.length; i++) dbToken.push({ token: tData[i][0], paketId: tData[i][1], jenis: tData[i][2], isUsed: tData[i][3], usedBy: tData[i][4] });
-                    dbHasil = []; const hData = res.data.hasil; for(let i=1; i<hData.length; i++) dbHasil.push({ wkt: hData[i][0], id: hData[i][1], siswaId: hData[i][2], nama: hData[i][3], kelas: hData[i][4], paketId: hData[i][5], mapel: hData[i][6], skor: hData[i][7], durasi: hData[i][8], detail: JSON.parse(hData[i][9]||'{}'), koreksiEsai: JSON.parse(hData[i][10]||'{}') });
+                    
+                    // Gunakan parseSafe pada detail jawaban dan koreksi esai
+                    dbHasil = []; const hData = res.data.hasil; for(let i=1; i<hData.length; i++) dbHasil.push({ wkt: hData[i][0], id: hData[i][1], siswaId: hData[i][2], nama: hData[i][3], kelas: hData[i][4], paketId: hData[i][5], mapel: hData[i][6], skor: hData[i][7], durasi: hData[i][8], detail: parseSafe(hData[i][9], {}), koreksiEsai: parseSafe(hData[i][10], {}) });
                 }
             } catch(e) { console.error("Gagal fetch GAS:", e); }
         };
@@ -1125,8 +1115,10 @@
             try {
                 const res = await fetchGAS("tarikJadwalDashboard");
                 if(res.status === "success" && res.data) {
-                    dbPaket = []; const pData = res.data.paket; for(let i=1; i<pData.length; i++) dbPaket.push({ id: pData[i][0], nama: pData[i][1], mapel: pData[i][2], durasi: pData[i][3], waktuMulai: pData[i][4], batasWaktu: pData[i][5], targetKelas: (pData[i][6]?JSON.parse(pData[i][6]):[]), aktif: pData[i][7] });
-                    dbHasil = []; const hData = res.data.hasil; for(let i=1; i<hData.length; i++) dbHasil.push({ wkt: hData[i][0], id: hData[i][1], siswaId: hData[i][2], nama: hData[i][3], kelas: hData[i][4], paketId: hData[i][5], mapel: hData[i][6], skor: hData[i][7], durasi: hData[i][8], detail: JSON.parse(hData[i][9]||'{}'), koreksiEsai: JSON.parse(hData[i][10]||'{}') });
+                    const parseSafe = (val, fallback) => { try { return JSON.parse(val); } catch(e) { return fallback; } };
+                    
+                    dbPaket = []; const pData = res.data.paket; for(let i=1; i<pData.length; i++) dbPaket.push({ id: pData[i][0], nama: pData[i][1], mapel: pData[i][2], durasi: pData[i][3], waktuMulai: pData[i][4], batasWaktu: pData[i][5], targetKelas: parseSafe(pData[i][6], [pData[i][6]]), aktif: pData[i][7] });
+                    dbHasil = []; const hData = res.data.hasil; for(let i=1; i<hData.length; i++) dbHasil.push({ wkt: hData[i][0], id: hData[i][1], siswaId: hData[i][2], nama: hData[i][3], kelas: hData[i][4], paketId: hData[i][5], mapel: hData[i][6], skor: hData[i][7], durasi: hData[i][8], detail: parseSafe(hData[i][9], {}), koreksiEsai: parseSafe(hData[i][10], {}) });
                     dbToken = []; const tData = res.data.token; for(let i=1; i<tData.length; i++) dbToken.push({ token: tData[i][0], paketId: tData[i][1], jenis: tData[i][2], isUsed: tData[i][3], usedBy: tData[i][4] });
                 }
             } catch(e) { console.error("Gagal fetch jadwal:", e); }
@@ -1449,59 +1441,127 @@
         function renderDashboardSiswa() {
             document.getElementById('sd-nama').textContent = currentSiswa.nama;
             document.getElementById('sd-kelas').textContent = currentSiswa.kelas;
-            const grid = document.getElementById('grid-student-paket'); grid.innerHTML = '';
+            const grid = document.getElementById('grid-student-paket'); 
+            grid.innerHTML = '';
             
             // Filter paket untuk kelas siswa ini
-            const myPakets = dbPaket.filter(p => p.aktif && (p.targetKelas.includes('ALL') || p.targetKelas.includes(currentSiswa.kelas)));
+            let myPakets = dbPaket.filter(p => p.aktif && (p.targetKelas.includes('ALL') || p.targetKelas.includes(currentSiswa.kelas)));
             
             if(myPakets.length === 0) {
                 grid.innerHTML = '<div class="col-span-full p-12 text-center text-slate-500 font-medium bg-white rounded-[2rem] border border-slate-200 shadow-sm"><i class="fas fa-bed text-4xl mb-4 text-slate-300 block"></i>Belum ada jadwal ujian untuk kelas Anda saat ini.</div>';
                 return;
             }
 
-            const now = new Date();
-            myPakets.forEach(p => {
-                const startTime = new Date(p.waktuMulai);
-                const endTime = new Date(p.batasWaktu);
-                const isFinished = dbHasil.some(h => String(h.siswaId) === String(currentSiswa.id) && h.paketId === p.id);
-                
-                let statusHtml = ''; let btnHtml = ''; let cardStyle = '';
-                
-                if (isFinished) {
-                    statusHtml = '<span class="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-emerald-100 flex items-center w-fit gap-1.5"><i class="fas fa-check-circle"></i> Selesai</span>';
-                    btnHtml = '<button disabled class="w-full bg-slate-100 text-slate-400 font-bold py-3.5 rounded-xl cursor-not-allowed mt-auto text-sm border border-slate-200 shadow-inner">Telah Dikerjakan</button>';
-                    cardStyle = 'opacity-80 bg-slate-50/50';
-                } else if (now < startTime) {
-                    statusHtml = '<span class="bg-slate-100 text-slate-500 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-slate-200 flex items-center w-fit gap-1.5"><i class="fas fa-clock"></i> Menunggu Jadwal</span>';
-                    btnHtml = '<button disabled class="w-full bg-slate-100 text-slate-400 font-bold py-3.5 rounded-xl cursor-not-allowed mt-auto text-sm border border-slate-200 shadow-inner">Belum Mulai</button>';
-                    cardStyle = 'bg-white grayscale-[0.5]';
-                } else if (now > endTime) {
-                    statusHtml = '<span class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-red-100 flex items-center w-fit gap-1.5"><i class="fas fa-times-circle"></i> Tenggat Terlewat</span>';
-                    btnHtml = `<button onclick="bukaInfoUjian('${p.id}', true)" class="w-full bg-amber-500 text-white hover:bg-amber-600 font-bold py-3.5 rounded-xl mt-auto text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2"><i class="fas fa-key"></i> Butuh Token Susulan</button>`;
-                    cardStyle = 'bg-white border-red-100';
-                } else {
-                    const hasSavedState = !!sessionStorage.getItem(`exam_state_${currentSiswa.id}_${p.id}`);
-                    statusHtml = '<span class="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-indigo-100 flex items-center w-fit gap-1.5 animate-pulse"><i class="fas fa-play-circle"></i> Berlangsung</span>';
-                    btnHtml = `<button onclick="bukaInfoUjian('${p.id}', false)" class="w-full bg-[#0f172a] text-white hover:bg-[#1e293b] font-bold py-3.5 rounded-xl mt-auto text-sm shadow-[0_4px_15px_-3px_rgba(15,23,42,0.4)] transition active:scale-95 flex items-center justify-center gap-2">${hasSavedState ? 'Lanjutkan' : 'Kerjakan'} <i class="fas fa-arrow-right"></i></button>`;
-                    cardStyle = 'bg-white hover:-translate-y-1 hover:shadow-xl';
-                }
+            // Urutkan dari jadwal yang paling dekat/awal (Ascending)
+            myPakets.sort((a, b) => new Date(a.waktuMulai) - new Date(b.waktuMulai));
 
-                grid.innerHTML += `
-                <div class="${cardStyle} border border-slate-200 rounded-[2rem] p-6 shadow-sm transition-all duration-300 flex flex-col relative overflow-hidden group">
-                    <div class="absolute top-0 left-0 w-full h-1.5 bg-indigo-500"></div>
-                    <div class="flex justify-between items-start mb-5">
-                        <div class="bg-slate-50 border border-slate-200 text-slate-500 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl shadow-sm">${p.mapel}</div>
-                        ${statusHtml}
-                    </div>
-                    <h3 class="font-black text-xl text-slate-800 leading-tight mb-2 tracking-tight group-hover:text-indigo-600 transition-colors">${p.nama}</h3>
-                    <div class="space-y-2 mt-4 mb-6 bg-slate-50/50 p-4 rounded-[1.25rem] border border-slate-100 flex-grow">
-                        <div class="flex justify-between items-center"><span class="text-[11px] text-slate-500 font-bold uppercase flex items-center gap-1.5"><i class="far fa-clock text-indigo-400"></i> Durasi</span><span class="font-black text-slate-700 text-sm">${p.durasi} Min</span></div>
-                        <div class="flex justify-between items-center"><span class="text-[11px] text-slate-500 font-bold uppercase flex items-center gap-1.5"><i class="far fa-calendar-alt text-indigo-400"></i> Dibuka</span><span class="font-bold text-slate-700 text-xs">${startTime.toLocaleString('id-ID', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span></div>
-                        <div class="flex justify-between items-center pt-2 mt-2 border-t border-slate-200/70"><span class="text-[11px] text-slate-500 font-bold uppercase flex items-center gap-1.5"><i class="fas fa-hourglass-end text-red-400"></i> Ditutup</span><span class="font-bold text-red-600 text-xs">${endTime.toLocaleString('id-ID', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span></div>
-                    </div>
-                    ${btnHtml}
-                </div>`;
+            const now = new Date();
+            // Ambil waktu persis jam 00:00:00 untuk komparasi hari
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+            // Objek untuk mengelompokkan paket ujian
+            const groups = {
+                'Hari Ini': [],
+                'Besok': [],
+                'Akan Datang': [],
+                'Riwayat Ujian': []
+            };
+
+            // Masukkan paket ke kelompok yang sesuai
+            myPakets.forEach(p => {
+                const startDate = new Date(p.waktuMulai);
+                const pDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+                
+                if (pDate.getTime() === today.getTime()) {
+                    groups['Hari Ini'].push(p);
+                } else if (pDate.getTime() === tomorrow.getTime()) {
+                    groups['Besok'].push(p);
+                } else if (pDate > tomorrow) {
+                    groups['Akan Datang'].push(p);
+                } else {
+                    groups['Riwayat Ujian'].push(p);
+                }
             });
+
+            // Loop per kelompok dan render HTML-nya
+            for (const [groupName, pakets] of Object.entries(groups)) {
+                if (pakets.length === 0) continue; // Skip jika grup kosong
+
+                // Tentukan warna dan ikon berdasarkan kelompok
+                let icon = 'fas fa-calendar-day';
+                let color = 'text-indigo-600';
+                
+                if(groupName === 'Hari Ini') { icon = 'fas fa-calendar-check'; color = 'text-emerald-500'; }
+                if(groupName === 'Besok') { icon = 'fas fa-calendar-plus'; color = 'text-amber-500'; }
+                if(groupName === 'Riwayat Ujian') { icon = 'fas fa-history'; color = 'text-slate-500'; }
+
+                // 1. Render Judul Pemisah Grup (Full Width Column)
+                grid.innerHTML += `
+                    <div class="col-span-full mt-6 mb-2 flex items-center gap-3 border-b border-slate-200 pb-4 fade-in">
+                        <div class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-sm ${color}">
+                            <i class="${icon} text-lg"></i>
+                        </div>
+                        <h2 class="text-xl font-black text-slate-800 tracking-tight">${groupName}</h2>
+                        <span class="bg-slate-100 text-slate-500 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest ml-2 border border-slate-200">${pakets.length} Ujian</span>
+                    </div>
+                `;
+
+                // 2. Render Card Ujian ke dalam Grup Tersebut
+                pakets.forEach(p => {
+                    const startTime = new Date(p.waktuMulai);
+                    const endTime = new Date(p.batasWaktu);
+                    const isFinished = dbHasil.some(h => String(h.siswaId) === String(currentSiswa.id) && h.paketId === p.id);
+                    
+                    let statusHtml = ''; let btnHtml = ''; let cardStyle = '';
+                    
+                    if (isFinished) {
+                        statusHtml = '<span class="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-emerald-100 flex items-center w-fit gap-1.5"><i class="fas fa-check-circle"></i> Selesai</span>';
+                        btnHtml = '<button disabled class="w-full bg-slate-100 text-slate-400 font-bold py-3.5 rounded-xl cursor-not-allowed mt-auto text-sm border border-slate-200 shadow-inner">Telah Dikerjakan</button>';
+                        cardStyle = 'opacity-80 bg-slate-50/50';
+                    } else if (now < startTime) {
+                        statusHtml = '<span class="bg-slate-100 text-slate-500 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-slate-200 flex items-center w-fit gap-1.5"><i class="fas fa-clock"></i> Menunggu</span>';
+                        btnHtml = '<button disabled class="w-full bg-slate-100 text-slate-400 font-bold py-3.5 rounded-xl cursor-not-allowed mt-auto text-sm border border-slate-200 shadow-inner">Belum Mulai</button>';
+                        cardStyle = 'bg-white grayscale-[0.5]';
+                    } else if (now > endTime) {
+                        statusHtml = '<span class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-red-100 flex items-center w-fit gap-1.5"><i class="fas fa-times-circle"></i> Terlewat</span>';
+                        btnHtml = `<button onclick="bukaInfoUjian('${p.id}', true)" class="w-full bg-amber-500 text-white hover:bg-amber-600 font-bold py-3.5 rounded-xl mt-auto text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2"><i class="fas fa-key"></i> Butuh Token Susulan</button>`;
+                        cardStyle = 'bg-white border-red-100';
+                    } else {
+                        const hasSavedState = !!sessionStorage.getItem(`exam_state_${currentSiswa.id}_${p.id}`);
+                        statusHtml = '<span class="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-indigo-100 flex items-center w-fit gap-1.5 animate-pulse"><i class="fas fa-play-circle"></i> Berlangsung</span>';
+                        btnHtml = `<button onclick="bukaInfoUjian('${p.id}', false)" class="w-full bg-[#0f172a] text-white hover:bg-[#1e293b] font-bold py-3.5 rounded-xl mt-auto text-sm shadow-[0_4px_15px_-3px_rgba(15,23,42,0.4)] transition active:scale-95 flex items-center justify-center gap-2">${hasSavedState ? 'Lanjutkan' : 'Kerjakan'} <i class="fas fa-arrow-right"></i></button>`;
+                        cardStyle = 'bg-white hover:-translate-y-1 hover:shadow-xl';
+                    }
+
+                    const formatTanggal = startTime.toLocaleString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                    const formatJam = startTime.toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+
+                    grid.innerHTML += `
+                    <div class="${cardStyle} border border-slate-200 rounded-[2rem] p-6 shadow-sm transition-all duration-300 flex flex-col relative overflow-hidden group fade-in">
+                        <div class="absolute top-0 left-0 w-full h-1.5 bg-indigo-500"></div>
+                        
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="bg-slate-50 border border-slate-200 text-slate-500 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl shadow-sm">${p.mapel}</div>
+                            ${statusHtml}
+                        </div>
+
+                        <!-- Tanggal & Waktu -->
+                        <div class="mb-4 pb-4 border-b border-slate-100">
+                            <p class="text-[11px] font-black text-indigo-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><i class="far fa-calendar-check"></i> ${formatTanggal}</p>
+                            <p class="text-sm font-black text-slate-700 flex items-center gap-1.5"><i class="far fa-clock text-emerald-500"></i> Pukul ${formatJam}</p>
+                        </div>
+                        
+                        <h3 class="font-black text-xl text-slate-800 leading-tight mb-2 tracking-tight group-hover:text-indigo-600 transition-colors">${p.nama}</h3>
+                        
+                        <div class="space-y-2 mt-2 mb-6 bg-slate-50/50 p-4 rounded-[1.25rem] border border-slate-100 flex-grow">
+                            <div class="flex justify-between items-center"><span class="text-[11px] text-slate-500 font-bold uppercase flex items-center gap-1.5"><i class="fas fa-stopwatch text-indigo-400"></i> Durasi Ujian</span><span class="font-black text-slate-700 text-sm">${p.durasi} Menit</span></div>
+                            <div class="flex justify-between items-center pt-2 mt-2 border-t border-slate-200/70"><span class="text-[11px] text-slate-500 font-bold uppercase flex items-center gap-1.5"><i class="fas fa-hourglass-end text-red-400"></i> Ditutup</span><span class="font-bold text-red-600 text-xs">${endTime.toLocaleString('id-ID', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span></div>
+                        </div>
+                        ${btnHtml}
+                    </div>`;
+                });
+            }
         }
 
         let tempPaketToStart = null;
@@ -2197,9 +2257,12 @@
             try {
                 const res = await fetchGAS("sinkronAwal");
                 if(res.status === "success" && res.data) {
+                    const parseSafe = (val, fallback) => { try { return JSON.parse(val); } catch(e) { return fallback; } };
+                    
                     dbToken = []; const tData = res.data.token; for(let i=1; i<tData.length; i++) dbToken.push({ token: tData[i][0], paketId: tData[i][1], jenis: tData[i][2], isUsed: tData[i][3], usedBy: tData[i][4] });
                     dbSiswa = []; const siData = res.data.siswa; for(let i=1; i<siData.length; i++) dbSiswa.push({ id: siData[i][0], nama: siData[i][1], username: siData[i][2], password: String(siData[i][3]), kelas: siData[i][4], statusUjian: siData[i][5], cheatCount: siData[i][6], isBlocked: siData[i][7] });
-                    dbHasil = []; const hData = res.data.hasil; for(let i=1; i<hData.length; i++) dbHasil.push({ wkt: hData[i][0], id: hData[i][1], siswaId: hData[i][2], nama: hData[i][3], kelas: hData[i][4], paketId: hData[i][5], mapel: hData[i][6], skor: hData[i][7], durasi: hData[i][8], detail: JSON.parse(hData[i][9]||'{}'), koreksiEsai: JSON.parse(hData[i][10]||'{}') });
+                    dbHasil = []; const hData = res.data.hasil; for(let i=1; i<hData.length; i++) dbHasil.push({ wkt: hData[i][0], id: hData[i][1], siswaId: hData[i][2], nama: hData[i][3], kelas: hData[i][4], paketId: hData[i][5], mapel: hData[i][6], skor: hData[i][7], durasi: hData[i][8], detail: parseSafe(hData[i][9], {}), koreksiEsai: parseSafe(hData[i][10], {}) });
+                    dbPaket = []; const pData = res.data.paket; for(let i=1; i<pData.length; i++) dbPaket.push({ id: pData[i][0], nama: pData[i][1], mapel: pData[i][2], durasi: pData[i][3], waktuMulai: pData[i][4], batasWaktu: pData[i][5], targetKelas: parseSafe(pData[i][6], [pData[i][6]]), aktif: pData[i][7] });
                     
                     // --- SISTEM PEMBACA SOAL & AUTO-REPAIR TAHAP 4 ---
                     dbSoal = [];
@@ -2212,15 +2275,14 @@
                                 fullJsonString += String(rowData[j]);
                             }
                         }
-                        
                         if(fullJsonString.trim() !== "") {
                             let parsedSoal = null;
                             try {
                                 parsedSoal = JSON.parse(fullJsonString);
                             } catch (e) {
                                 let fixStr = fullJsonString.replace(/\n/g, "\\n").replace(/\r/g, "").replace(/\t/g, "\\t");
-                                try {
-                                    parsedSoal = JSON.parse(fixStr);
+                                try { 
+                                    parsedSoal = JSON.parse(fixStr); 
                                 } catch (e2) {
                                     let cleanStr = fixStr.substring(0, fixStr.lastIndexOf('}') + 1);
                                     try { parsedSoal = JSON.parse(cleanStr); } catch (e3) { }
@@ -2924,45 +2986,124 @@
         // --- STREAMING_CHUNK:Exam Package Logic... ---
         // --- ADMIN: PAKET SOAL ---
         function renderGridPaket() {
-            document.getElementById('panel-paket-soal').classList.remove('hidden'); document.getElementById('panel-list-soal').classList.add('hidden');
-            const grid = document.getElementById('grid-paket'); grid.innerHTML = '';
+            document.getElementById('panel-paket-soal').classList.remove('hidden'); 
+            document.getElementById('panel-list-soal').classList.add('hidden');
+            const grid = document.getElementById('grid-paket'); 
+            grid.innerHTML = '';
             
             const isGuru = sessionUser.role === 'admin';
             let pktMap = isGuru ? dbPaket.filter(p => p.mapel === sessionUser.mapel) : dbPaket;
 
-            if(pktMap.length===0) return grid.innerHTML = '<div class="col-span-full p-12 text-center text-slate-500 font-medium border border-dashed border-slate-300 rounded-[2rem] bg-white">Belum ada Paket Ujian.</div>';
+            if(pktMap.length === 0) {
+                return grid.innerHTML = '<div class="col-span-full p-12 text-center text-slate-500 font-medium border border-dashed border-slate-300 rounded-[2rem] bg-white">Belum ada Paket Ujian.</div>';
+            }
+
+            // Urutkan jadwal (Ascending - yang terdekat di atas)
+            pktMap.sort((a, b) => new Date(a.waktuMulai) - new Date(b.waktuMulai));
+
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+            const groups = {
+                'Hari Ini': [],
+                'Besok': [],
+                'Akan Datang': [],
+                'Terdahulu': []
+            };
 
             pktMap.forEach(p => {
-                const jml = dbSoal.filter(s=>s.paketId === p.id).length;
-                const tkArr = Array.isArray(p.targetKelas) ? p.targetKelas : [p.targetKelas || 'ALL'];
-                const tkDisplay = tkArr.includes('ALL') ? 'Semua Kelas' : (tkArr.length > 2 ? tkArr.slice(0,2).join(', ') + '...' : tkArr.join(', '));
+                const startDate = new Date(p.waktuMulai);
+                const pDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
                 
-                const jadwalStr = new Date(p.waktuMulai).toLocaleString('id-ID', {day: 'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
-                const batasStr = p.batasWaktu ? new Date(p.batasWaktu).toLocaleString('id-ID', {day: 'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '-';
-
-                grid.innerHTML += `
-                <div class="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-sm hover:shadow-lg transition-all flex flex-col group relative overflow-hidden hover:-translate-y-1">
-                    <div class="absolute top-0 left-0 w-1.5 h-full bg-indigo-500"></div>
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="flex gap-2">
-                            <div class="bg-indigo-50 border border-indigo-100 text-indigo-600 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">${p.mapel}</div>
-                            <div class="bg-slate-50 border border-slate-200 text-slate-500 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg truncate max-w-[100px]" title="${tkArr.join(', ')}">${tkDisplay}</div>
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="bukaModalPaket('${p.id}')" class="text-slate-300 hover:text-indigo-600 transition bg-white w-7 h-7 rounded-full border border-transparent hover:border-indigo-100 hover:bg-indigo-50 flex items-center justify-center"><i class="fas fa-edit text-xs"></i></button>
-                            <button onclick="bukaAdminConfirm('Hapus Paket?', 'Paket ujian dan seluruh soal di dalamnya akan terhapus.', () => { dbPaket = dbPaket.filter(x=>x.id!=='${p.id}'); dbSoal = dbSoal.filter(s=>s.paketId!=='${p.id}'); fetchGAS('hapusPaket', {id: '${p.id}'}); renderGridPaket(); })" class="text-slate-300 hover:text-red-500 transition bg-white w-7 h-7 rounded-full border border-transparent hover:border-red-100 hover:bg-red-50 flex items-center justify-center"><i class="fas fa-trash text-xs"></i></button>
-                        </div>
-                    </div>
-                    <h3 class="font-black text-xl text-slate-800 leading-tight mb-4 tracking-tight group-hover:text-indigo-600 transition-colors">${p.nama}</h3>
-                    <div class="flex flex-col gap-2.5 mb-6 bg-slate-50 p-4 rounded-[1.25rem] border border-slate-100 flex-grow">
-                        <p class="text-[11px] text-slate-500 font-bold uppercase flex justify-between items-center"><span class="flex items-center gap-1.5"><i class="far fa-clock text-indigo-400"></i> Durasi</span> <span class="font-black text-slate-700">${p.durasi} Menit</span></p>
-                        <p class="text-[11px] text-slate-500 font-bold uppercase flex justify-between items-center"><span class="flex items-center gap-1.5"><i class="far fa-calendar-alt text-indigo-400"></i> Mulai</span> <span class="font-bold text-slate-700">${jadwalStr}</span></p>
-                        <p class="text-[11px] text-slate-500 font-bold uppercase flex justify-between items-center"><span class="flex items-center gap-1.5"><i class="fas fa-hourglass-end text-red-400"></i> Tenggat</span> <span class="font-bold text-red-600">${batasStr}</span></p>
-                        <p class="text-[11px] text-slate-500 font-bold uppercase mt-1 pt-2 border-t border-slate-200 flex justify-between items-center"><span class="flex items-center gap-1.5"><i class="fas fa-layer-group text-emerald-400"></i> Total Soal</span> <span class="font-black text-slate-700">${jml}</span></p>
-                    </div>
-                    <button onclick="bukaListSoal('${p.id}')" class="w-full mt-auto bg-white border border-slate-200 text-slate-600 font-bold py-3.5 rounded-xl hover:bg-[#0f172a] hover:text-white hover:border-[#0f172a] transition shadow-sm flex items-center justify-center gap-2 active:scale-95">Kelola Butir Soal <i class="fas fa-arrow-right text-xs"></i></button>
-                </div>`;
+                if (pDate.getTime() === today.getTime()) {
+                    groups['Hari Ini'].push(p);
+                } else if (pDate.getTime() === tomorrow.getTime()) {
+                    groups['Besok'].push(p);
+                } else if (pDate > tomorrow) {
+                    groups['Akan Datang'].push(p);
+                } else {
+                    groups['Terdahulu'].push(p);
+                }
             });
+
+            // Helper untuk mengubah tanggal menjadi Teks Indonesia Lengkap
+            const formatTglHeader = (dateObj) => dateObj.toLocaleString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+            for (const [groupName, pakets] of Object.entries(groups)) {
+                if (pakets.length === 0) continue;
+
+                let icon = 'fas fa-calendar-day';
+                let color = 'text-indigo-600';
+                let dateLabel = '';
+                
+                // Konfigurasi Ikon dan Tanggal pada Judul
+                if(groupName === 'Hari Ini') { 
+                    icon = 'fas fa-calendar-check'; 
+                    color = 'text-emerald-500'; 
+                    dateLabel = `<span class="text-sm font-semibold text-slate-400 ml-2 font-normal tracking-normal hidden md:inline-block">(${formatTglHeader(today)})</span>`;
+                } else if(groupName === 'Besok') { 
+                    icon = 'fas fa-calendar-plus'; 
+                    color = 'text-amber-500'; 
+                    dateLabel = `<span class="text-sm font-semibold text-slate-400 ml-2 font-normal tracking-normal hidden md:inline-block">(${formatTglHeader(tomorrow)})</span>`;
+                } else if(groupName === 'Terdahulu') { 
+                    icon = 'fas fa-history'; 
+                    color = 'text-slate-500'; 
+                }
+
+                // Render Judul Pemisah Grup (Full Width Column)
+                grid.innerHTML += `
+                    <div class="col-span-full mt-6 mb-2 flex items-center gap-3 border-b border-slate-200 pb-4 fade-in">
+                        <div class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-sm ${color}">
+                            <i class="${icon} text-lg"></i>
+                        </div>
+                        <h2 class="text-xl font-black text-slate-800 tracking-tight flex items-center">${groupName} ${dateLabel}</h2>
+                        <span class="bg-slate-100 text-slate-500 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest ml-auto md:ml-2 border border-slate-200">${pakets.length} Paket</span>
+                    </div>
+                `;
+
+                // Render Card Paket Ujian ke dalam Grup
+                pakets.forEach(p => {
+                    const jml = dbSoal.filter(s=>s.paketId === p.id).length;
+                    const tkArr = Array.isArray(p.targetKelas) ? p.targetKelas : [p.targetKelas || 'ALL'];
+                    const tkDisplay = tkArr.includes('ALL') ? 'Semua Kelas' : (tkArr.length > 2 ? tkArr.slice(0,2).join(', ') + '...' : tkArr.join(', '));
+                    
+                    const stTime = new Date(p.waktuMulai);
+                    const formatTanggal = stTime.toLocaleString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                    const formatJam = stTime.toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+                    const batasStr = p.batasWaktu ? new Date(p.batasWaktu).toLocaleString('id-ID', {day: 'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '-';
+
+                    grid.innerHTML += `
+                    <div class="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-sm hover:shadow-lg transition-all flex flex-col group relative overflow-hidden hover:-translate-y-1 fade-in">
+                        <div class="absolute top-0 left-0 w-1.5 h-full bg-indigo-500"></div>
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex gap-2">
+                                <div class="bg-indigo-50 border border-indigo-100 text-indigo-600 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">${p.mapel}</div>
+                                <div class="bg-slate-50 border border-slate-200 text-slate-500 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg truncate max-w-[100px]" title="${tkArr.join(', ')}">${tkDisplay}</div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="bukaModalPaket('${p.id}')" class="text-slate-300 hover:text-indigo-600 transition bg-white w-7 h-7 rounded-full border border-transparent hover:border-indigo-100 hover:bg-indigo-50 flex items-center justify-center"><i class="fas fa-edit text-xs"></i></button>
+                                <button onclick="bukaAdminConfirm('Hapus Paket?', 'Paket ujian dan seluruh soal di dalamnya akan terhapus.', () => { dbPaket = dbPaket.filter(x=>x.id!=='${p.id}'); dbSoal = dbSoal.filter(s=>s.paketId!=='${p.id}'); fetchGAS('hapusPaket', {id: '${p.id}'}); renderGridPaket(); })" class="text-slate-300 hover:text-red-500 transition bg-white w-7 h-7 rounded-full border border-transparent hover:border-red-100 hover:bg-red-50 flex items-center justify-center"><i class="fas fa-trash text-xs"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- Tanggal & Waktu Ditampilkan Paling Atas di Card -->
+                        <div class="mb-4 pb-4 border-b border-slate-100">
+                            <p class="text-[11px] font-black text-indigo-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><i class="far fa-calendar-check"></i> ${formatTanggal}</p>
+                            <p class="text-sm font-black text-slate-700 flex items-center gap-1.5"><i class="far fa-clock text-emerald-500"></i> Pukul ${formatJam}</p>
+                        </div>
+
+                        <h3 class="font-black text-xl text-slate-800 leading-tight mb-4 tracking-tight group-hover:text-indigo-600 transition-colors">${p.nama}</h3>
+                        
+                        <div class="flex flex-col gap-2.5 mb-6 bg-slate-50 p-4 rounded-[1.25rem] border border-slate-100 flex-grow">
+                            <p class="text-[11px] text-slate-500 font-bold uppercase flex justify-between items-center"><span class="flex items-center gap-1.5"><i class="far fa-clock text-indigo-400"></i> Durasi</span> <span class="font-black text-slate-700">${p.durasi} Menit</span></p>
+                            <p class="text-[11px] text-slate-500 font-bold uppercase flex justify-between items-center"><span class="flex items-center gap-1.5"><i class="fas fa-hourglass-end text-red-400"></i> Tenggat</span> <span class="font-bold text-red-600">${batasStr}</span></p>
+                            <p class="text-[11px] text-slate-500 font-bold uppercase mt-1 pt-2 border-t border-slate-200 flex justify-between items-center"><span class="flex items-center gap-1.5"><i class="fas fa-layer-group text-emerald-400"></i> Total Soal</span> <span class="font-black text-slate-700">${jml}</span></p>
+                        </div>
+                        <button onclick="bukaListSoal('${p.id}')" class="w-full mt-auto bg-white border border-slate-200 text-slate-600 font-bold py-3.5 rounded-xl hover:bg-[#0f172a] hover:text-white hover:border-[#0f172a] transition shadow-sm flex items-center justify-center gap-2 active:scale-95">Kelola Butir Soal <i class="fas fa-arrow-right text-xs"></i></button>
+                    </div>`;
+                });
+            }
         }
 
         // Multi Checkbox Kelas
