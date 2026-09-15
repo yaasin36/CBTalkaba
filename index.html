@@ -1119,73 +1119,83 @@
             } catch(e) { console.error("Gagal fetch GAS:", e); }
         };
 
+        // --- TAMBAHAN BARU: Tarik Jadwal Khusus Siswa ---
+        window.tarikJadwalSiswa = async function() {
+            if(!GAS_URL) return;
+            try {
+                const res = await fetchGAS("tarikJadwalDashboard");
+                if(res.status === "success" && res.data) {
+                    dbPaket = []; const pData = res.data.paket; for(let i=1; i<pData.length; i++) dbPaket.push({ id: pData[i][0], nama: pData[i][1], mapel: pData[i][2], durasi: pData[i][3], waktuMulai: pData[i][4], batasWaktu: pData[i][5], targetKelas: (pData[i][6]?JSON.parse(pData[i][6]):[]), aktif: pData[i][7] });
+                    dbHasil = []; const hData = res.data.hasil; for(let i=1; i<hData.length; i++) dbHasil.push({ wkt: hData[i][0], id: hData[i][1], siswaId: hData[i][2], nama: hData[i][3], kelas: hData[i][4], paketId: hData[i][5], mapel: hData[i][6], skor: hData[i][7], durasi: hData[i][8], detail: JSON.parse(hData[i][9]||'{}'), koreksiEsai: JSON.parse(hData[i][10]||'{}') });
+                    dbToken = []; const tData = res.data.token; for(let i=1; i<tData.length; i++) dbToken.push({ token: tData[i][0], paketId: tData[i][1], jenis: tData[i][2], isUsed: tData[i][3], usedBy: tData[i][4] });
+                }
+            } catch(e) { console.error("Gagal fetch jadwal:", e); }
+        };
+
+        // FUNGSI INIT ONLOAD
         // FUNGSI INIT ONLOAD
         window.onload = async () => {
-            // MOCK DATA: Disuntikkan sebagai fallback jika GAS belum sinkron
-            // dbAdmin = [
-            //     {id: 1, nama: "Ketua Panitia", username: "superadmin", password: "123", role: "superadmin", mapel: ""}
-            // ];
-            // dbSiswa = [
-            //     {id: "S01", nama: "Siswa Tester 1", username: "siswa1", password: "123", kelas: "XII-A", statusUjian: false, cheatCount: 0, isBlocked: false}
-            // ];
-            // dbPaket = [
-            //     {id: "P01", nama: "UAS Informatika", mapel: "Informatika", durasi: 90, waktuMulai: toIsoStringLocal(new Date(Date.now() - 3600000)), batasWaktu: toIsoStringLocal(new Date(Date.now() + 7200000)), targetKelas: ["XII-A", "XII-B"], aktif: true}
-            // ];
-            // dbToken = [{token: "ABCDEF", paketId: "P01", jenis: "Reguler", isUsed: false}];
-
             // CEK SESSION LAMA
             const savedSession = sessionStorage.getItem('cbt_user');
             if (savedSession) {
-                // Jika statusnya sudah pernah login dan merefresh halaman, blokir layar sejenak untuk memuat jadwal ujian
                 document.getElementById('view-loading').classList.remove('hidden');
-                document.getElementById('loading-text').innerText = "Memuat Data Sistem...";
-                await window.tarikDataServer();
-                document.getElementById('view-loading').classList.add('hidden');
-
                 const parsed = JSON.parse(savedSession);
+                
                 if(parsed.type === 'admin') {
+                    document.getElementById('loading-text').innerText = "Memuat Data Sistem...";
+                    await window.tarikDataServer();
                     sessionUser = parsed.data;
                     setupAdminUI();
                     switchView('view-admin-dashboard');
                     setTimeout(() => renderDashboardAdmin(), 300);
                     setInterval(() => syncAdminRealtime(false), 15000);
                 } else if(parsed.type === 'siswa') {
-                    // --- PERBAIKAN: Ambil data fresh dari database agar status blokir terbaca ---
-                    const freshSiswa = dbSiswa.find(s => String(s.id) === String(parsed.data.id) || String(s.username) === String(parsed.data.username));
-                    currentSiswa = freshSiswa || parsed.data;
-                    sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
+                    document.getElementById('loading-text').innerText = "Memverifikasi Sesi...";
                     
-                    if (currentSiswa.isBlocked) {
-                        document.getElementById('cheat-count-display').textContent = currentSiswa.cheatCount;
-                        return switchView('view-blocked');
-                    }
+                    // Verifikasi ulang diam-diam agar tau jika siswa diblokir dari perangkat lain
+                    const res = await fetchGAS("verifikasiLogin", { username: parsed.data.username, password: parsed.data.password });
+                    
+                    if(res.status === 'success' && res.data && res.data.role === 'siswa') {
+                        currentSiswa = res.data.user;
+                        sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
+                        
+                        if (currentSiswa.isBlocked) {
+                            document.getElementById('cheat-count-display').textContent = currentSiswa.cheatCount;
+                            document.getElementById('view-loading').classList.add('hidden');
+                            return switchView('view-blocked');
+                        }
 
-                    // --- CEK STATUS HALAMAN TERAKHIR (DASHBOARD ATAU UJIAN AKTIF) ---
-                    let activePaketId = null;
-                    for (let i = 0; i < sessionStorage.length; i++) {
-                        const key = sessionStorage.key(i);
-                        if (key && key.startsWith(`exam_state_${currentSiswa.id}_`)) {
-                            activePaketId = key.split('_').pop();
-                            break;
-                        }
-                    }
+                        document.getElementById('loading-text').innerText = "Memuat Jadwal...";
+                        await window.tarikJadwalSiswa();
+                        
+                        // Cek apakah ada ujian yang sedang berlangsung
+                        let activePaketId = null;
+                        for (let i = 0; i < sessionStorage.length; i++) {
+                            const key = sessionStorage.key(i);
+                            if (key && key.startsWith(`exam_state_${currentSiswa.id}_`)) {
+                                activePaketId = key.split('_').pop(); break;
+                            }
+                        }
 
-                    if (activePaketId) {
-                        const p = dbPaket.find(x => x.id === activePaketId);
-                        if (p) {
-                            tempPaketToStart = p;
-                            mulaiUjian(false); // Langsung render ke halaman soal terakhir
-                        } else {
-                            renderDashboardSiswa();
-                            switchView('view-student-dashboard');
-                        }
-                    } else {
-                        renderDashboardSiswa();
-                        switchView('view-student-dashboard');
-                    }
+                        if (activePaketId) {
+                            const p = dbPaket.find(x => x.id === activePaketId);
+                            if (p) {
+                                tempPaketToStart = p;
+                                await mulaiUjian(false); // Langsung sambung ujian
+                            } else {
+                                renderDashboardSiswa(); switchView('view-student-dashboard');
+                            }
+                        } else {
+                            renderDashboardSiswa(); switchView('view-student-dashboard');
+                        }
+                    } else {
+                        // Sesi tidak valid / Password diganti admin
+                        sessionStorage.removeItem('cbt_user');
+                        switchView('view-login');
+                    }
                 }
+                document.getElementById('view-loading').classList.add('hidden');
             } else {
-                // JIKA BELUM LOGIN, TAMPILKAN HALAMAN LOGIN SECARA INSTAN TANPA LOADING SINKRON!
                 switchView('view-login');
             }
 
@@ -1319,61 +1329,57 @@
             const errEl = document.getElementById('login-error-msg');
             const formBox = document.getElementById('login-box');
             
-            // Tampilkan loading dan tarik data fresh saat tombol login diklik
             document.getElementById('view-loading').classList.remove('hidden');
-            document.getElementById('loading-text').innerText = "Memverifikasi Data...";
-            
-            await window.tarikDataServer(); // Sinkronisasi database
-            
+            document.getElementById('loading-text').innerText = "Memverifikasi Akun...";
+
+            // Memanggil Endpoint Cepat di Backend
+            const res = await fetchGAS("verifikasiLogin", { username: u, password: p });
+
+            if (res.status === "success" && res.data) {
+                errEl.classList.add('hidden');
+                
+                if(res.data.role === 'siswa') {
+                    currentSiswa = res.data.user;
+                    sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
+                    if(typeof kirimLogSistem === 'function') kirimLogSistem("Login Siswa", "Siswa berhasil login.");
+                    
+                    document.getElementById('loginPass').value = '';
+                    
+                    // Tarik jadwal ujian saja (tanpa data soal berat)
+                    document.getElementById('loading-text').innerText = "Memuat Jadwal...";
+                    await window.tarikJadwalSiswa();
+                    
+                    showAlertModal('success', 'Login Berhasil', `Halo ${currentSiswa.nama}, selamat mengerjakan ujian!`, () => {
+                        renderDashboardSiswa();
+                        switchView('view-student-dashboard');
+                    }, null, 'Masuk Beranda');
+                } else {
+                    sessionUser = res.data.user;
+                    sessionStorage.setItem('cbt_user', JSON.stringify({type:'admin', data:sessionUser}));
+                    if(typeof kirimLogSistem === 'function') kirimLogSistem("Login Admin", "Akses login dashboard portal guru/panitia.");
+                    
+                    document.getElementById('loginPass').value = '';
+                    
+                    // Untuk admin, baru tarik data penuh
+                    document.getElementById('loading-text').innerText = "Menyiapkan Data Dashboard...";
+                    await window.tarikDataServer();
+                    
+                    showAlertModal('success', 'Login Berhasil', `Selamat datang kembali, ${sessionUser.nama}.`, () => {
+                        setupAdminUI();
+                        switchView('view-admin-dashboard');
+                        setTimeout(() => renderDashboardAdmin(), 300);
+                        setInterval(() => syncAdminRealtime(false), 15000);
+                    }, null, 'Masuk Dashboard');
+                }
+            } else {
+                errEl.classList.remove('hidden');
+                formBox.classList.remove('shake'); void formBox.offsetWidth; formBox.classList.add('shake');
+                showAlertModal('error', 'Login Gagal', 'Username atau Password yang Anda ketik salah. Silakan periksa kembali!', () => {
+                    document.getElementById('loginPass').value = '';
+                    document.getElementById('loginPass').focus();
+                }, null, 'Coba Lagi');
+            }
             document.getElementById('view-loading').classList.add('hidden');
-
-            // 1. Cek Admin/Guru (Gunakan String() agar data angka di spreasheet terbaca teks)
-            const adm = dbAdmin.find(x => String(x.username).trim() === u && String(x.password).trim() === p);
-            if(adm) {
-                errEl.classList.add('hidden');
-                sessionUser = adm;
-                sessionStorage.setItem('cbt_user', JSON.stringify({type:'admin', data:adm}));
-                if(typeof kirimLogSistem === 'function') kirimLogSistem("Login Admin", "Akses login dashboard portal guru/panitia.");
-                
-                document.getElementById('loginPass').value = '';
-                
-                // Panggil Pop Up Berhasil Admin
-                showAlertModal('success', 'Login Berhasil', `Selamat datang kembali, ${adm.nama}.`, () => {
-                    setupAdminUI();
-                    switchView('view-admin-dashboard');
-                    setTimeout(() => renderDashboardAdmin(), 300);
-                    setInterval(() => syncAdminRealtime(false), 15000);
-                }, null, 'Masuk Dashboard');
-                return;
-            }
-
-            // 2. Cek Siswa
-            const swa = dbSiswa.find(x => String(x.username).trim() === u && String(x.password).trim() === p);
-            if(swa) {
-                errEl.classList.add('hidden');
-                currentSiswa = swa;
-                sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:swa}));
-                if(typeof kirimLogSistem === 'function') kirimLogSistem("Login Siswa", "Siswa berhasil login ke beranda ujian CBT."); 
-                
-                document.getElementById('loginPass').value = '';
-                
-                // Panggil Pop Up Berhasil Siswa
-                showAlertModal('success', 'Login Berhasil', `Halo ${swa.nama}, selamat mengerjakan ujian!`, () => {
-                    renderDashboardSiswa();
-                    switchView('view-student-dashboard');
-                }, null, 'Masuk Beranda');
-                return;
-            }
-
-            // Jika Gagal
-            errEl.classList.remove('hidden');
-            formBox.classList.remove('shake'); void formBox.offsetWidth; formBox.classList.add('shake');
-            
-            // Panggil Pop Up Error
-            showAlertModal('error', 'Login Gagal', 'Username atau Password yang Anda ketik salah. Silakan periksa kembali!', () => {
-                document.getElementById('loginPass').value = '';
-                document.getElementById('loginPass').focus();
-            }, null, 'Coba Lagi');
         }
 
         function logoutUnified() {
@@ -1522,7 +1528,7 @@
         }
         function tutupInfoUjian() { document.getElementById('modal-info-ujian').classList.add('hidden'); tempPaketToStart = null; }
 
-        function mulaiUjian(isLate) {
+        async function mulaiUjian(isLate) {
             if(!currentSiswa || !tempPaketToStart) return;
             if(currentSiswa.isBlocked) { document.getElementById('cheat-count-display').textContent = currentSiswa.cheatCount; tutupInfoUjian(); return switchView('view-blocked'); }
             
@@ -1541,8 +1547,26 @@
             activePaket = tempPaketToStart;
             tutupInfoUjian();
 
-            let rawSoal = dbSoal.filter(s => s.paketId === activePaket.id);
-            if(rawSoal.length === 0) return showToast("Belum ada soal di dalam paket ini.", "error");
+            // === LAZY LOAD: Tarik Soal Hanya Saat Ujian Dimulai ===
+            document.getElementById('view-loading').classList.remove('hidden');
+            document.getElementById('loading-text').innerText = "Mengunduh Lembar Soal...";
+            
+            try {
+                const resSoal = await fetchGAS("tarikSoalByPaket", { paketId: activePaket.id });
+                if(resSoal.status === "success") {
+                    dbSoal = resSoal.data; // Simpan ke local dbSoal khusus paket ini
+                }
+            } catch(e) {
+                document.getElementById('view-loading').classList.add('hidden');
+                return showToast("Gagal mengunduh soal, periksa koneksi internet Anda.", "error");
+            }
+
+            let rawSoal = dbSoal; 
+            if(rawSoal.length === 0) {
+                document.getElementById('view-loading').classList.add('hidden');
+                return showToast("Belum ada soal di dalam paket ini.", "error");
+            }
+            // =======================================================
 
             const savedStateStr = sessionStorage.getItem(`exam_state_${currentSiswa.id}_${activePaket.id}`);
             let savedState = null;
@@ -1589,7 +1613,6 @@
                  }
             }
             
-            // Tarik waktu mulai dari memori jika refresh (agar tidak bisa curang me-reset batas min waktu)
             if (savedState && savedState.waktuMulaiUjian) {
                 waktuMulaiUjian = new Date(savedState.waktuMulaiUjian);
             } else {
@@ -1597,7 +1620,6 @@
             }
             
             isExamFinished = false; enterFullscreen(); 
-            switchView('view-loading'); document.getElementById("loading-text").innerText = "Menyiapkan Lembar Soal...";
             
             setTimeout(() => {
                 isExamActive = true; 
@@ -1610,8 +1632,10 @@
                 } else {
                     kirimLogSistem("Melanjutkan Ujian", `Siswa melanjutkan mengerjakan paket: ${activePaket.nama}`); 
                 }
+                
+                document.getElementById('view-loading').classList.add('hidden'); // Sembunyikan loading
                 switchView('view-exam');
-            }, 800);
+            }, 500);
         }
 
         function simpanStateUjian() {
