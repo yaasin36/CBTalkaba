@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Portal CBT KKA & Informatika</title>
+    <title>Portal CBT SMA Islam Al Azahar 15 Semarang</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="img/alazhar.png" onerror="this.src='https://placehold.co/100x100/0f172a/ffffff?text=CBT'" />
@@ -14,6 +14,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- Tambahkan ini untuk Export Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <!-- Quill Editor -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
@@ -86,6 +89,102 @@
             min-height: 100px;
             tab-size: 4;       /* Mengatur lebar tab sebesar 4 spasi */
             -moz-tab-size: 4;
+        }
+
+        /* --- FITUR CETAK TABEL KHUSUS --- */
+        @media print {
+            /* 1. Paksa kertas menjadi Portrait dan setel margin tipis agar area cetak maksimal */
+            @page {
+                size: portrait;
+                margin: 10mm;
+            }
+
+            /* 2. Sembunyikan sidebar, header navigasi, dan tombol-tombol admin */
+            body.printing-tabel aside,
+            body.printing-tabel main > div:not(.flex-1),
+            body.printing-tabel #panel-detail-hasil button {
+                display: none !important;
+            }
+
+            /* 3. Reset container utama agar full dan tidak memiliki scroll */
+            body.printing-tabel,
+            body.printing-tabel #view-admin-dashboard,
+            body.printing-tabel main,
+            body.printing-tabel main > .flex-1 {
+                display: block !important;
+                height: auto !important;
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                overflow: visible !important;
+            }
+
+            /* 4. Hapus jarak (padding/margin) luar pada panel putih pembungkus tabel */
+            body.printing-tabel #panel-detail-hasil > div {
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            /* 5. Sembunyikan kolom "Status" (kolom ke-3) dan "Aksi PDF" (kolom paling kanan) */
+            body.printing-tabel #panel-detail-hasil th:nth-child(3),
+            body.printing-tabel #panel-detail-hasil td:nth-child(3),
+            body.printing-tabel #panel-detail-hasil th:last-child,
+            body.printing-tabel #panel-detail-hasil td:last-child {
+                display: none !important;
+            }
+            
+            /* 6. PERAPIHAN HEADER LAPORAN CETAK */
+            body.printing-tabel #panel-detail-hasil .flex.justify-between.items-center.mb-6 {
+                display: block !important;
+                text-align: center !important;
+                border-bottom: 2px solid #0f172a !important;
+                padding-bottom: 15px !important;
+                margin-bottom: 20px !important;
+            }
+            body.printing-tabel #label-detail-paket {
+                font-size: 16px !important;
+                color: #000 !important;
+                text-transform: uppercase !important;
+            }
+            /* Menambahkan Judul Utama Laporan secara otomatis */
+            body.printing-tabel #label-detail-paket::before {
+                content: "REKAPITULASI HASIL UJIAN CBT";
+                display: block !important;
+                font-size: 20px !important;
+                font-weight: 900 !important;
+                margin-bottom: 5px !important;
+            }
+            /* Menyembunyikan deskripsi kecil di bawah judul */
+            body.printing-tabel #panel-detail-hasil .flex.justify-between.items-center.mb-6 p {
+                display: none !important; 
+            }
+
+            /* 7. COMPRESS AREA & GARIS TABEL FORMAL */
+            body.printing-tabel table {
+                width: 100% !important;
+                page-break-inside: auto !important;
+                border-collapse: collapse !important; /* Menyatukan garis tabel */
+            }
+            body.printing-tabel th,
+            body.printing-tabel td {
+                padding: 6px 8px !important;
+                font-size: 11px !important;
+                border: 1px solid #cbd5e1 !important; /* Menambahkan garis tepi tabel agar formal */
+                color: #000 !important;
+            }
+            body.printing-tabel th {
+                background-color: #f1f5f9 !important;
+                font-weight: bold !important;
+                text-align: center !important;
+            }
+
+            /* 8. Pastikan warna teks/background warna-warni ikut tercetak */
+            body.printing-tabel * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
         }
     </style>
 </head>
@@ -474,7 +573,10 @@
                                     <h2 class="text-lg font-black text-slate-800" id="label-detail-paket">Nama Paket</h2>
                                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Status dan Nilai Siswa</p>
                                 </div>
-                                <button onclick="printTabelHasil()" class="bg-[#0f172a] text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-[#1e293b] shadow-sm transition flex items-center gap-2"><i class="fas fa-print"></i> Cetak Tabel</button>
+                                <div class="flex gap-2">
+                                    <button onclick="exportExcelHasil()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-emerald-700 shadow-sm transition flex items-center gap-2"><i class="fas fa-file-excel"></i> Export Excel</button>
+                                    <button onclick="printTabelHasil()" class="bg-[#0f172a] text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-[#1e293b] shadow-sm transition flex items-center gap-2"><i class="fas fa-print"></i> Cetak Tabel</button>
+                                </div>
                             </div>
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left text-sm whitespace-nowrap">
@@ -972,24 +1074,41 @@
                     dbSiswa = []; const siData = res.data.siswa; for(let i=1; i<siData.length; i++) dbSiswa.push({ id: siData[i][0], nama: siData[i][1], username: siData[i][2], password: String(siData[i][3]), kelas: siData[i][4], statusUjian: siData[i][5], cheatCount: siData[i][6], isBlocked: siData[i][7] });
                     dbPaket = []; const pData = res.data.paket; for(let i=1; i<pData.length; i++) dbPaket.push({ id: pData[i][0], nama: pData[i][1], mapel: pData[i][2], durasi: pData[i][3], waktuMulai: pData[i][4], batasWaktu: pData[i][5], targetKelas: (pData[i][6]?JSON.parse(pData[i][6]):[]), aktif: pData[i][7] });
                     
-                    // --- PERUBAHAN: Penggabungan kembali (Re-assembling) data JSON Soal ---
+                    // --- SISTEM PEMBACA SOAL & AUTO-REPAIR TAHAP 4 ---
                     dbSoal = []; 
                     const sData = res.data.soal; 
                     for(let i=1; i<sData.length; i++) {
                         let rowData = sData[i];
                         let fullJsonString = "";
-                        // Menggabungkan potongan JSON yang ada mulai dari Kolom ke-6 (indeks 5) sampai habis (indeks 20)
-                        for(let j = 5; j <= 20; j++) {
-                            if(rowData[j]) {
-                                fullJsonString += rowData[j];
+                        
+                        // Kumpulkan potongan string JSON mulai dari kolom indeks ke-5 (Kolom F di Excel)
+                        for(let j = 5; j < rowData.length; j++) {
+                            if(rowData[j] !== undefined && rowData[j] !== null) {
+                                fullJsonString += String(rowData[j]);
                             }
                         }
                         
-                        if(fullJsonString) {
+                        if(fullJsonString.trim() !== "") {
+                            let parsedSoal = null;
                             try {
-                                dbSoal.push(JSON.parse(fullJsonString));
+                                parsedSoal = JSON.parse(fullJsonString);
                             } catch (e) {
-                                console.warn("Gagal mem-parsing salah satu soal:", fullJsonString.substring(0, 100) + "...", e);
+                                // REPAIR 1: Perbaiki karakter Enter/Tab manual dan spasi aneh
+                                let fixStr = fullJsonString.replace(/\n/g, "\\n").replace(/\r/g, "").replace(/\t/g, "\\t");
+                                try {
+                                    parsedSoal = JSON.parse(fixStr);
+                                } catch (e2) {
+                                    // REPAIR 2: Potong string persis setelah kurung kurawal tutup terakhir }
+                                    let cleanStr = fixStr.substring(0, fixStr.lastIndexOf('}') + 1);
+                                    try {
+                                        parsedSoal = JSON.parse(cleanStr);
+                                    } catch (e3) {
+                                        console.warn(`[DIABAIKAN] Baris soal ke-${i+1} gagal dimuat akibat format JSON rusak total.`);
+                                    }
+                                }
+                            }
+                            if (parsedSoal && parsedSoal.id) {
+                                dbSoal.push(parsedSoal);
                             }
                         }
                     }
@@ -1428,56 +1547,56 @@
             const savedStateStr = sessionStorage.getItem(`exam_state_${currentSiswa.id}_${activePaket.id}`);
             let savedState = null;
             if (savedStateStr) {
-                try {
-                    savedState = JSON.parse(savedStateStr);
-                } catch (e) {
-                    console.error("Gagal parse saved state:", e);
-                }
+                try { savedState = JSON.parse(savedStateStr); } catch (e) { console.error(e); }
             }
 
             if (savedState && savedState.soalSiswa && savedState.soalSiswa.length > 0) {
-                soalSiswa = savedState.soalSiswa;
-                jawabanSiswa = savedState.jawabanSiswa || {};
-                statusRagu = savedState.statusRagu || {};
-                currentIndex = savedState.currentIndex || 0;
-            } else {
-                const shuffleArray = (array) => { let arr = [...array]; for (let i=arr.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1)); [arr[i], arr[j]]=[arr[j], arr[i]]; } return arr; };
-                let sPG = shuffleArray(rawSoal.filter(s => s.jenis === 'PG' || s.jenis === 'PGK'));
-                let sEsai = shuffleArray(rawSoal.filter(s => s.jenis === 'ESAI'));
-                let sBS = shuffleArray(rawSoal.filter(s => s.jenis === 'BS'));
-                let sJodoh = shuffleArray(rawSoal.filter(s => s.jenis === 'JODOH'));
-                soalSiswa = [...sPG, ...sEsai, ...sBS, ...sJodoh];
-                jawabanSiswa = {}; statusRagu = {}; currentIndex = 0; 
+                soalSiswa = savedState.soalSiswa;
+                jawabanSiswa = savedState.jawabanSiswa || {};
+                statusRagu = savedState.statusRagu || {};
+                currentIndex = savedState.currentIndex || 0;
+            } else {
+                const shuffleArray = (array) => { let arr = [...array]; for (let i=arr.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1)); [arr[i], arr[j]]=[arr[j], arr[i]]; } return arr; };
+                let sPG = shuffleArray(rawSoal.filter(s => s.jenis === 'PG' || s.jenis === 'PGK'));
+                let sEsai = shuffleArray(rawSoal.filter(s => s.jenis === 'ESAI'));
+                let sBS = shuffleArray(rawSoal.filter(s => s.jenis === 'BS'));
+                let sJodoh = shuffleArray(rawSoal.filter(s => s.jenis === 'JODOH'));
+                soalSiswa = [...sPG, ...sEsai, ...sBS, ...sJodoh];
+                jawabanSiswa = {}; statusRagu = {}; currentIndex = 0; 
 
-                // --- RESET CHEAT COUNT KETIKA MULAI UJIAN BARU ---
-                currentSiswa.cheatCount = 0;
-                sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
-                fetchGAS('simpanSiswa', currentSiswa);
-            }
+                currentSiswa.cheatCount = 0;
+                sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
+                fetchGAS('simpanSiswa', currentSiswa);
+            }
 
             document.getElementById('header-mapel').textContent = activePaket.nama;
             document.getElementById('header-nama').textContent = `${currentSiswa.nama} - ${currentSiswa.kelas}`;
             
-            // --- LOGIKA DURASI KETAT ---
             const nowTime = new Date();
             const endTime = new Date(activePaket.batasWaktu);
             let sisaDetik = Math.floor((endTime - nowTime) / 1000);
             
             if (isLate) {
-                waktuTersisa = activePaket.durasi * 60; // Diberikan full waktu bersih karena susulan
+                waktuTersisa = activePaket.durasi * 60; 
             } else {
-                waktuTersisa = sisaDetik < (activePaket.durasi * 60) ? sisaDetik : activePaket.durasi * 60; // Waktu sisa akan terpotong batas akhir
-                if (waktuTersisa <= 0) waktuTersisa = 10; // Sistem minimal toleransi jika sangat mepet
+                waktuTersisa = sisaDetik < (activePaket.durasi * 60) ? sisaDetik : activePaket.durasi * 60; 
+                if (waktuTersisa <= 0) waktuTersisa = 10; 
             }
 
             if (savedState && savedState.waktuTersisa && savedState.waktuTersisa > 0) {
-                 // Use saved time if it's less than what they currently have, preventing them from gaining time by refreshing
                  if(savedState.waktuTersisa < waktuTersisa){
                      waktuTersisa = savedState.waktuTersisa;
                  }
             }
             
-            isExamFinished = false; enterFullscreen(); waktuMulaiUjian = nowTime; 
+            // Tarik waktu mulai dari memori jika refresh (agar tidak bisa curang me-reset batas min waktu)
+            if (savedState && savedState.waktuMulaiUjian) {
+                waktuMulaiUjian = new Date(savedState.waktuMulaiUjian);
+            } else {
+                waktuMulaiUjian = nowTime;
+            }
+            
+            isExamFinished = false; enterFullscreen(); 
             switchView('view-loading'); document.getElementById("loading-text").innerText = "Menyiapkan Lembar Soal...";
             
             setTimeout(() => {
@@ -1487,9 +1606,9 @@
                 simpanStateUjian();
                 
                 if(!savedState) {
-                    kirimLogSistem("Mulai Ujian", `Siswa mulai mengerjakan paket: ${activePaket.nama}`); // PENAMBAHAN LOG
+                    kirimLogSistem("Mulai Ujian", `Siswa mulai mengerjakan paket: ${activePaket.nama}`); 
                 } else {
-                    kirimLogSistem("Melanjutkan Ujian", `Siswa melanjutkan mengerjakan paket: ${activePaket.nama}`); // PENAMBAHAN LOG
+                    kirimLogSistem("Melanjutkan Ujian", `Siswa melanjutkan mengerjakan paket: ${activePaket.nama}`); 
                 }
                 switchView('view-exam');
             }, 800);
@@ -1502,7 +1621,8 @@
                 jawabanSiswa: jawabanSiswa,
                 statusRagu: statusRagu,
                 currentIndex: currentIndex,
-                waktuTersisa: waktuTersisa
+                waktuTersisa: waktuTersisa,
+                waktuMulaiUjian: waktuMulaiUjian ? waktuMulaiUjian.getTime() : new Date().getTime() // Rekam waktu start asli
             };
             sessionStorage.setItem(`exam_state_${currentSiswa.id}_${activePaket.id}`, JSON.stringify(state));
         }
@@ -1852,7 +1972,22 @@
         window.addEventListener('beforeunload', function (e) { if (currentSiswa && activePaket && !isExamFinished) submitLatarBelakang(); });
         window.addEventListener('pagehide', function (e) { if (currentSiswa && activePaket && !isExamFinished) submitLatarBelakang(); });
 
-        function bukaModalSelesai() { document.getElementById('modal-confirm').classList.remove('hidden'); }
+        function bukaModalSelesai() { 
+            if (!activePaket || !waktuMulaiUjian) return;
+            
+            const elapsedMinutes = Math.floor((new Date() - waktuMulaiUjian) / 60000);
+            const minMenit = activePaket.minWaktu !== undefined ? activePaket.minWaktu : 60; // 60 Default jika data lama
+            
+            // Logika Pencegahan Kumpul Awal
+            if (elapsedMinutes < minMenit) {
+                const sisaTunggu = minMenit - elapsedMinutes;
+                showToast(`Waktu minimum pengerjaan adalah ${minMenit} menit. Anda belum boleh keluar. Tunggu ${sisaTunggu} menit lagi!`, "error");
+                return;
+            }
+
+            document.getElementById('modal-confirm').classList.remove('hidden'); 
+        }
+        
         function tutupModalSelesai() { document.getElementById('modal-confirm').classList.add('hidden'); }
         
         function hitungSkorTotal(hasilObj) {
@@ -2042,11 +2177,51 @@
                     dbSiswa = []; const siData = res.data.siswa; for(let i=1; i<siData.length; i++) dbSiswa.push({ id: siData[i][0], nama: siData[i][1], username: siData[i][2], password: String(siData[i][3]), kelas: siData[i][4], statusUjian: siData[i][5], cheatCount: siData[i][6], isBlocked: siData[i][7] });
                     dbHasil = []; const hData = res.data.hasil; for(let i=1; i<hData.length; i++) dbHasil.push({ wkt: hData[i][0], id: hData[i][1], siswaId: hData[i][2], nama: hData[i][3], kelas: hData[i][4], paketId: hData[i][5], mapel: hData[i][6], skor: hData[i][7], durasi: hData[i][8], detail: JSON.parse(hData[i][9]||'{}'), koreksiEsai: JSON.parse(hData[i][10]||'{}') });
                     
+                    // --- SISTEM PEMBACA SOAL & AUTO-REPAIR TAHAP 4 ---
+                    dbSoal = [];
+                    const sData = res.data.soal;
+                    for(let i=1; i<sData.length; i++) {
+                        let rowData = sData[i];
+                        let fullJsonString = "";
+                        for(let j = 5; j < rowData.length; j++) {
+                            if(rowData[j] !== undefined && rowData[j] !== null) {
+                                fullJsonString += String(rowData[j]);
+                            }
+                        }
+                        
+                        if(fullJsonString.trim() !== "") {
+                            let parsedSoal = null;
+                            try {
+                                parsedSoal = JSON.parse(fullJsonString);
+                            } catch (e) {
+                                let fixStr = fullJsonString.replace(/\n/g, "\\n").replace(/\r/g, "").replace(/\t/g, "\\t");
+                                try {
+                                    parsedSoal = JSON.parse(fixStr);
+                                } catch (e2) {
+                                    let cleanStr = fixStr.substring(0, fixStr.lastIndexOf('}') + 1);
+                                    try { parsedSoal = JSON.parse(cleanStr); } catch (e3) { }
+                                }
+                            }
+                            if (parsedSoal && parsedSoal.id) {
+                                dbSoal.push(parsedSoal);
+                            }
+                        }
+                    }
+
                     if(!document.getElementById('tab-token').classList.contains('hidden')) renderFormToken();
                     if(!document.getElementById('tab-dashboard').classList.contains('hidden')) renderDashboardAdmin();
                     if(!document.getElementById('tab-anggota').classList.contains('hidden')) renderTableAnggota();
                     if(!document.getElementById('tab-hasil').classList.contains('hidden')) renderTingkatKelasHasil(); 
-                    if(manual) showToast("Data berhasil disinkronkan!", "success");
+                    
+                    if(!document.getElementById('tab-banksoal').classList.contains('hidden')) {
+                        if(!document.getElementById('panel-list-soal').classList.contains('hidden') && adminAktifPaketId) {
+                            bukaListSoal(adminAktifPaketId);
+                        } else {
+                            renderGridPaket();
+                        }
+                    }
+
+                    if(manual) showToast("Data berhasil disinkronkan secara Realtime!", "success");
                 }
             } catch(e) { if(manual) showToast("Gagal sinkronisasi", "error"); }
         }
@@ -2258,7 +2433,7 @@
                 tbody.innerHTML += `
                 <tr class="hover:bg-slate-50 transition border-b border-slate-50">
                     <td class="p-4 text-xs font-bold text-slate-400">${idx+1}</td>
-                    <td class="p-4 font-bold text-slate-700">${s.nama} <br><span class="text-[10px] text-slate-400 font-medium">NIS: ${s.username}</span></td>
+                    <td class="p-4 font-bold text-slate-700">${s.nama} <br><span class="text-[10px] text-slate-400 font-medium">Username: ${s.username}</span></td>
                     <td class="p-4 text-center">${statusHtml}</td>
                     <td class="p-4 text-center font-semibold text-slate-600">${poinPG}</td>
                     <td class="p-4 text-center font-semibold text-slate-600">${poinPGK}</td>
@@ -2273,7 +2448,112 @@
 
         function kembaliKeKelasHasil() { document.getElementById('panel-paket-hasil').classList.add('hidden'); document.getElementById('panel-detail-hasil').classList.add('hidden'); document.getElementById('panel-kelas-hasil').classList.remove('hidden'); tempKelasHasil = null; }
         function kembaliKePaketHasil() { document.getElementById('panel-detail-hasil').classList.add('hidden'); document.getElementById('panel-paket-hasil').classList.remove('hidden'); tempPaketHasil = null; }
-        function printTabelHasil() { window.print(); }
+        function printTabelHasil() { 
+            // Tambahkan class penanda ke elemen body bahwa sistem sedang mencetak tabel
+            document.body.classList.add('printing-tabel'); 
+            
+            // Panggil dialog print browser
+            window.print(); 
+            
+            // Hapus class penanda setelah dialog print ditutup agar tampilan web kembali normal
+            setTimeout(() => {
+                document.body.classList.remove('printing-tabel');
+            }, 1000);
+        }
+        
+        // --- FUNGSI EXPORT EXCEL ---
+        function exportExcelHasil() {
+            if (!tempPaketHasil || !tempKelasHasil) return showToast("Tidak ada data paket aktif", "error");
+
+            showToast("Menyiapkan file Excel...", "info");
+            
+            const paketId = tempPaketHasil.id;
+            const soalPkt = dbSoal.filter(soal => soal.paketId === paketId);
+            const siswaKelas = dbSiswa.filter(s => s.kelas === tempKelasHasil).sort((a,b) => a.nama.localeCompare(b.nama));
+
+            // Siapkan Array kosong untuk menampung baris-baris Excel
+            const excelData = [];
+            
+            siswaKelas.forEach((s, idx) => {
+                const hsl = dbHasil.find(h => String(h.siswaId) === String(s.id) && h.paketId === paketId);
+                const isLate = dbToken.find(t => t.paketId === paketId && t.jenis === 'Susulan' && t.isUsed && t.usedBy === s.nama);
+                
+                let status = 'Belum Ujian';
+                let pPG = 0, pPGK = 0, pBS = 0, pMJ = 0, totalRaw = 0, skorAkhir = 0;
+
+                if (hsl) {
+                    status = 'Selesai';
+                    soalPkt.forEach(soal => {
+                        let myPoin = 0;
+                        const ans = hsl.detail[soal.id];
+                        if (ans !== undefined && ans !== null) {
+                            if (soal.jenis === 'PG' && ans === soal.jawabanBenar[0]) myPoin = 2;
+                            else if (soal.jenis === 'PGK' && Array.isArray(ans) && Array.isArray(soal.jawabanBenar)) {
+                                myPoin = ans.filter(val => soal.jawabanBenar.includes(val)).length;
+                            } else if (soal.jenis === 'BS' && typeof ans === 'object') {
+                                (soal.pernyataan || []).forEach((p, i) => { if (ans[i] === p.kunci) myPoin += 1; });
+                            } else if (soal.jenis === 'JODOH' && typeof ans === 'object') {
+                                const keys = Object.keys(soal.kunciJodoh || {});
+                                keys.forEach(k => { if (ans[k] === soal.kunciJodoh[k]) myPoin += 1; });
+                            }
+                        }
+                        if (soal.jenis === 'ESAI' && hsl.koreksiEsai && hsl.koreksiEsai[soal.id] !== undefined) {
+                            myPoin = hsl.koreksiEsai[soal.id];
+                        }
+
+                        if (soal.jenis === 'PG') pPG += myPoin;
+                        else if (soal.jenis === 'PGK') pPGK += myPoin;
+                        else if (soal.jenis === 'BS') pBS += myPoin;
+                        else if (soal.jenis === 'JODOH') pMJ += myPoin;
+                        totalRaw += myPoin;
+                    });
+                    skorAkhir = hsl.skor; 
+                } else if (isLate) {
+                    status = 'Sedang Ujian (Susulan)';
+                } else {
+                    const now = new Date(); const startTime = new Date(tempPaketHasil.waktuMulai); const endTime = new Date(tempPaketHasil.batasWaktu);
+                    if (now >= startTime && now <= endTime) status = 'Sedang Ujian';
+                }
+
+                // Masukkan data siswa 1-per-1 ke row Excel
+                excelData.push({
+                    "No": idx + 1,
+                    "NIS": s.username,
+                    "Nama Siswa": s.nama,
+                    "Kelas": s.kelas,
+                    "Status": status,
+                    "Poin PG": hsl ? pPG : '-',
+                    "Poin PGK": hsl ? pPGK : '-',
+                    "Poin BS": hsl ? pBS : '-',
+                    "Poin MJ": hsl ? pMJ : '-',
+                    "Total Poin Mentah": hsl ? totalRaw : '-',
+                    "Skor Akhir (Skala 100)": hsl ? skorAkhir : '-'
+                });
+            });
+
+            // Eksekusi Konversi Data menjadi File Excel Asli (.xlsx)
+            const worksheet = XLSX.utils.json_to_sheet(excelData);
+            
+            // Atur lebar kolom agar rapi saat Excel dibuka
+            worksheet['!cols'] = [
+                { wch: 5 },  // No
+                { wch: 15 }, // NIS
+                { wch: 35 }, // Nama Siswa
+                { wch: 10 }, // Kelas
+                { wch: 20 }, // Status
+                { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, // Poin-poin
+                { wch: 20 }, // Total Poin Mentah
+                { wch: 25 }  // Skor Akhir (Skala 100)
+            ];
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Ujian");
+            
+            // Download File
+            const fileName = `Rekap_Nilai_${tempPaketHasil.mapel}_Kelas_${tempKelasHasil}.xlsx`;
+            XLSX.writeFile(workbook, fileName);
+            showToast("File Excel berhasil diunduh!", "success");
+        }
 
         // --- STREAMING_CHUNK:PDF Rendering Engine... ---
         // --- FUNGSI PDF DETAIL UJIAN ---
@@ -2686,15 +2966,17 @@
                 : `<input type="text" id="cpMapel" required value="${valMapel}" class="w-full border border-slate-200 rounded-xl px-4 py-3.5 text-sm bg-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 shadow-sm" placeholder="Contoh: Matematika">`;
 
             const now = new Date();
-            const valWaktu = p ? p.waktuMulai : toIsoStringLocal(now);
-            const valBatas = p && p.batasWaktu ? p.batasWaktu : toIsoStringLocal(new Date(now.getTime() + (2 * 60 * 60 * 1000)));
+            const valWaktu = p ? toIsoStringLocal(new Date(p.waktuMulai)) : toIsoStringLocal(now);
+            const valBatas = (p && p.batasWaktu) ? toIsoStringLocal(new Date(p.batasWaktu)) : toIsoStringLocal(new Date(now.getTime() + (2 * 60 * 60 * 1000)));
+            const valMinWaktu = p ? (p.minWaktu !== undefined ? p.minWaktu : 60) : 60; // DEFAULT 60 Menit
 
             document.getElementById('form-crud').innerHTML = `
                 <input type="hidden" id="cpId" value="${p ? p.id : ''}">
                 <div><label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nama Paket Ujian</label><input type="text" id="cpNama" required value="${p ? p.nama : ''}" class="w-full border border-slate-200 rounded-xl px-4 py-3.5 text-sm bg-white outline-none focus:border-indigo-500 shadow-sm" placeholder="Contoh: UTS Ganjil 2026"></div>
                 <div><label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Mata Pelajaran</label>${mapelInput}</div>
                 <div><label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Target Kelas (Pilih Minimal 1)</label><div class="bg-white border border-slate-200 rounded-xl p-2 max-h-40 overflow-y-auto shadow-inner flex flex-col gap-1">${classCheckboxes}</div></div>
-                <div class="grid grid-cols-2 gap-4 mt-2">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                    <div><label class="block text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2">Min. Selesai (Menit)</label><input type="number" id="cpMinWaktu" required min="1" value="${valMinWaktu}" class="w-full border border-indigo-200 rounded-xl px-4 py-3.5 text-sm bg-indigo-50/50 outline-none focus:border-indigo-500 shadow-sm"></div>
                     <div><label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Waktu Mulai</label><input type="datetime-local" id="cpWaktu" required value="${valWaktu}" class="w-full border border-slate-200 rounded-xl px-4 py-3.5 text-sm bg-white outline-none focus:border-indigo-500 shadow-sm"></div>
                     <div><label class="block text-[10px] font-black text-red-500 uppercase tracking-widest mb-2">Tenggat Pengerjaan</label><input type="datetime-local" id="cpBatas" required value="${valBatas}" class="w-full border border-red-200 rounded-xl px-4 py-3.5 text-sm bg-red-50/50 outline-none focus:border-red-500 text-red-700 font-bold shadow-sm"></div>
                 </div>
@@ -2709,20 +2991,24 @@
 
                 const waktuMulai = document.getElementById('cpWaktu').value;
                 const batasWaktu = document.getElementById('cpBatas').value;
+                const minWaktu = parseInt(document.getElementById('cpMinWaktu').value) || 60; // Simpan nilai waktu minimal
+
                 const tMulai = new Date(waktuMulai).getTime();
                 const tBatas = new Date(batasWaktu).getTime();
                 
                 if(tBatas <= tMulai) return showToast("Tenggat Pengerjaan harus setelah Waktu Mulai!", "error");
                 const calcDurasi = Math.round((tBatas - tMulai) / 60000);
+                
+                if (minWaktu > calcDurasi) return showToast("Waktu minimum tidak boleh melebihi total durasi pengerjaan!", "error");
 
                 const editId = document.getElementById('cpId').value; let pkt;
                 if (editId) {
                     pkt = dbPaket.find(x => x.id === editId);
                     pkt.nama = document.getElementById('cpNama').value; pkt.mapel = document.getElementById('cpMapel').value; pkt.durasi = calcDurasi;
-                    pkt.waktuMulai = waktuMulai; pkt.batasWaktu = batasWaktu; pkt.targetKelas = checkedClasses;
+                    pkt.waktuMulai = waktuMulai; pkt.batasWaktu = batasWaktu; pkt.targetKelas = checkedClasses; pkt.minWaktu = minWaktu;
                 } else {
                     const newPaketId = 'P'+Date.now();
-                    pkt = { id: newPaketId, nama: document.getElementById('cpNama').value, mapel: document.getElementById('cpMapel').value, durasi: calcDurasi, waktuMulai: waktuMulai, batasWaktu: batasWaktu, targetKelas: checkedClasses, aktif: true };
+                    pkt = { id: newPaketId, nama: document.getElementById('cpNama').value, mapel: document.getElementById('cpMapel').value, durasi: calcDurasi, waktuMulai: waktuMulai, batasWaktu: batasWaktu, targetKelas: checkedClasses, minWaktu: minWaktu, aktif: true };
                     dbPaket.push(pkt); 
                     const tk = {token: Math.random().toString(36).substr(2,6).toUpperCase(), paketId: newPaketId, jenis: 'Reguler', isUsed: false, usedBy: null};
                     dbToken.push(tk); fetchGAS("simpanToken", tk); 
