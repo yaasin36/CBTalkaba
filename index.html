@@ -2329,7 +2329,7 @@
             if (!activePaket || !waktuMulaiUjian) return;
             
             const elapsedMinutes = Math.floor((new Date() - waktuMulaiUjian) / 60000);
-            const minMenit = activePaket.minWaktu !== undefined ? activePaket.minWaktu : 60; // 60 Default jika data lama
+            const minMenit = activePaket.minWaktu !== undefined && activePaket.minWaktu !== "" ? parseInt(activePaket.minWaktu) : 30; // 30 Menit Default
             
             // Logika Pencegahan Kumpul Awal
             if (elapsedMinutes < minMenit) {
@@ -2358,7 +2358,7 @@
                 if (s.jenis === 'PG') {
                     maxPoinSoal = 2;
                 } else if (s.jenis === 'PGK') {
-                    maxPoinSoal = Array.isArray(s.jawabanBenar) ? s.jawabanBenar.length : 0;
+                    maxPoinSoal = 3; // FIX: PGK selalu bernilai maksimal 3 Poin
                 } else if (s.jenis === 'BS') {
                     maxPoinSoal = Array.isArray(s.pernyataan) ? s.pernyataan.length : 0;
                 } else if (s.jenis === 'JODOH') {
@@ -2376,12 +2376,13 @@
                 if (s.jenis === 'PG') {
                     if (ans === s.jawabanBenar[0]) skorSiswa += 2; 
                 } 
+                // GANTI BAGIAN INI:
                 else if (s.jenis === 'PGK') {
                     if (Array.isArray(ans) && Array.isArray(s.jawabanBenar)) { 
-                        const poinPGK = ans.filter(val => s.jawabanBenar.includes(val)).length;
-                        skorSiswa += poinPGK;
+                        const isAllCorrect = ans.length === s.jawabanBenar.length && ans.every(val => s.jawabanBenar.includes(val));
+                        if (isAllCorrect) skorSiswa += 3;
                     } 
-                } 
+                }
                 else if (s.jenis === 'BS') {
                     if (typeof ans === 'object') { 
                         (s.pernyataan || []).forEach((p, i) => { 
@@ -2554,7 +2555,7 @@
                     dbToken = []; const tData = res.data.token; for(let i=1; i<tData.length; i++) dbToken.push({ token: tData[i][0], paketId: tData[i][1], jenis: tData[i][2], isUsed: tData[i][3], usedBy: tData[i][4], usedTime: tData[i][5] });
                     dbSiswa = []; const siData = res.data.siswa; for(let i=1; i<siData.length; i++) dbSiswa.push({ id: siData[i][0], nama: siData[i][1], username: siData[i][2], password: String(siData[i][3]), kelas: siData[i][4], statusUjian: siData[i][5], cheatCount: siData[i][6], isBlocked: siData[i][7] });
                     dbHasil = []; const hData = res.data.hasil; for(let i=1; i<hData.length; i++) dbHasil.push({ wkt: hData[i][0], id: hData[i][1], siswaId: hData[i][2], nama: hData[i][3], kelas: hData[i][4], paketId: hData[i][5], mapel: hData[i][6], skor: hData[i][7], durasi: hData[i][8], detail: parseSafe(hData[i][9], {}), koreksiEsai: parseSafe(hData[i][10], {}) });
-                    dbPaket = []; const pData = res.data.paket; for(let i=1; i<pData.length; i++) dbPaket.push({ id: pData[i][0], nama: pData[i][1], mapel: pData[i][2], durasi: pData[i][3], waktuMulai: pData[i][4], batasWaktu: pData[i][5], targetKelas: parseSafe(pData[i][6], [pData[i][6]]), aktif: pData[i][7] });
+                    dbPaket = []; const pData = res.data.paket; for(let i=1; i<pData.length; i++) dbPaket.push({ id: pData[i][0], nama: pData[i][1], mapel: pData[i][2], durasi: pData[i][3], waktuMulai: pData[i][4], batasWaktu: pData[i][5], targetKelas: parseSafe(pData[i][6], [pData[i][6]]), aktif: pData[i][7], minWaktu: pData[i][8] });
                     
                     // --- SISTEM PEMBACA SOAL & AUTO-REPAIR TAHAP 4 ---
                     dbSoal = [];
@@ -2749,7 +2750,7 @@
                         let maxPoinSoal = 0; let myPoin = 0;
                         
                         if (soal.jenis === 'PG') maxPoinSoal = 2;
-                        else if (soal.jenis === 'PGK') maxPoinSoal = Array.isArray(soal.jawabanBenar) ? soal.jawabanBenar.length : 0;
+                        else if (soal.jenis === 'PGK') maxPoinSoal = 3; // FIX: PGK maksimal 3
                         else if (soal.jenis === 'BS') maxPoinSoal = Array.isArray(soal.pernyataan) ? soal.pernyataan.length : 0;
                         else if (soal.jenis === 'JODOH') maxPoinSoal = Array.isArray(soal.kiri) ? soal.kiri.length : 0;
                         else if (soal.jenis === 'ESAI') maxPoinSoal = 100;
@@ -2760,7 +2761,8 @@
                         if (ans !== undefined && ans !== null) {
                             if (soal.jenis === 'PG' && ans === soal.jawabanBenar[0]) myPoin = 2;
                             else if (soal.jenis === 'PGK' && Array.isArray(ans) && Array.isArray(soal.jawabanBenar)) {
-                                myPoin = ans.filter(val => soal.jawabanBenar.includes(val)).length;
+                                const isAllCorrect = ans.length === soal.jawabanBenar.length && ans.every(val => soal.jawabanBenar.includes(val));
+                                myPoin = isAllCorrect ? 3 : 0;
                             } else if (soal.jenis === 'BS' && typeof ans === 'object') {
                                 (soal.pernyataan || []).forEach((p, i) => { if (ans[i] === p.kunci) myPoin += 1; });
                             } else if (soal.jenis === 'JODOH' && typeof ans === 'object') {
@@ -2867,7 +2869,8 @@
                         if (ans !== undefined && ans !== null) {
                             if (soal.jenis === 'PG' && ans === soal.jawabanBenar[0]) myPoin = 2;
                             else if (soal.jenis === 'PGK' && Array.isArray(ans) && Array.isArray(soal.jawabanBenar)) {
-                                myPoin = ans.filter(val => soal.jawabanBenar.includes(val)).length;
+                                const isAllCorrect = ans.length === soal.jawabanBenar.length && ans.every(val => soal.jawabanBenar.includes(val));
+                                myPoin = isAllCorrect ? 3 : 0;
                             } else if (soal.jenis === 'BS' && typeof ans === 'object') {
                                 (soal.pernyataan || []).forEach((p, i) => { if (ans[i] === p.kunci) myPoin += 1; });
                             } else if (soal.jenis === 'JODOH' && typeof ans === 'object') {
@@ -2945,7 +2948,7 @@
             soalLengkap.forEach(soal => {
                 let maxPoinSoal = 0; let myPoin = 0;
                 if (soal.jenis === 'PG') maxPoinSoal = 2;
-                else if (soal.jenis === 'PGK') maxPoinSoal = Array.isArray(soal.jawabanBenar) ? soal.jawabanBenar.length : 0;
+                else if (soal.jenis === 'PGK') maxPoinSoal = 3; // FIX: PGK maksimal 3
                 else if (soal.jenis === 'BS') maxPoinSoal = Array.isArray(soal.pernyataan) ? soal.pernyataan.length : 0;
                 else if (soal.jenis === 'JODOH') maxPoinSoal = Array.isArray(soal.kiri) ? soal.kiri.length : 0;
                 else if (soal.jenis === 'ESAI') maxPoinSoal = 100;
@@ -2955,7 +2958,8 @@
                 if (ans !== undefined && ans !== null) {
                     if (soal.jenis === 'PG' && ans === soal.jawabanBenar[0]) myPoin = 2;
                     else if (soal.jenis === 'PGK' && Array.isArray(ans) && Array.isArray(soal.jawabanBenar)) {
-                        myPoin = ans.filter(val => soal.jawabanBenar.includes(val)).length;
+                        const isAllCorrect = ans.length === soal.jawabanBenar.length && ans.every(val => soal.jawabanBenar.includes(val));
+                        myPoin = isAllCorrect ? 3 : 0;
                     } else if (soal.jenis === 'BS' && typeof ans === 'object') {
                         (soal.pernyataan || []).forEach((p, i) => { if (ans[i] === p.kunci) myPoin += 1; });
                     } else if (soal.jenis === 'JODOH' && typeof ans === 'object') {
@@ -3007,12 +3011,16 @@
                 let detailHtml = ''; let isFullyCorrect = false;
                 let poinSoal = 0; let maxPoin = 0; 
                 
-                const getOptText = (id) => { 
+                // --- PERBAIKAN: EKSTRAKTOR TEKS DAN GAMBAR UNTUK PG & JODOHKAN ---
+                const getOptContent = (id) => { 
                     const o = s.opsi?.find(x=>x.id===id); 
                     if(!o) return id;
                     let tDiv = document.createElement("div"); tDiv.innerHTML = o.teks;
-                    return tDiv.textContent || tDiv.innerText || "";
+                    let plainText = tDiv.textContent || tDiv.innerText || "";
+                    let imgHtml = (o.img && o.img.length > 10) ? `<div style="margin-top: 6px;"><img src="${o.img}" style="max-height: 80px; width: auto; border-radius: 4px; border: 1px solid #cbd5e1; padding: 2px; display: block;"></div>` : '';
+                    return `<div><span class="text-sm">${plainText}</span>${imgHtml}</div>`;
                 };
+                
                 const getKananText = (id) => { 
                     const o = s.kanan?.find(x=>x.id===id); 
                     if(!o) return id;
@@ -3024,28 +3032,31 @@
                     maxPoin = 2; 
                     const stuAns = ans || '-'; const corAns = s.jawabanBenar[0]; isFullyCorrect = stuAns === corAns;
                     if (isFullyCorrect) poinSoal = maxPoin;
-                    detailHtml = `<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4"><div class="p-4 rounded-xl border ${isFullyCorrect ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Jawaban Siswa</p><p class="font-bold text-sm ${isFullyCorrect ? 'text-emerald-700' : 'text-red-700'}">${stuAns !== '-' ? `${getOptText(stuAns)}` : '<span class="italic font-medium">Tidak Dijawab</span>'}</p></div><div class="p-4 rounded-xl border bg-slate-50 border-slate-200 shadow-sm"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Kunci Jawaban</p><p class="font-bold text-sm text-slate-700">${getOptText(corAns)}</p></div></div>`;
+                    detailHtml = `<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4"><div class="p-4 rounded-xl border ${isFullyCorrect ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Jawaban Siswa</p><div class="font-bold ${isFullyCorrect ? 'text-emerald-700' : 'text-red-700'}">${stuAns !== '-' ? `${getOptContent(stuAns)}` : '<span class="italic font-medium text-sm">Tidak Dijawab</span>'}</div></div><div class="p-4 rounded-xl border bg-slate-50 border-slate-200 shadow-sm"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Kunci Jawaban</p><div class="font-bold text-slate-700">${getOptContent(corAns)}</div></div></div>`;
                 } 
                 else if (s.jenis === 'PGK') {
                     const stuAnsArr = Array.isArray(ans) ? ans : []; 
                     const corAnsArr = Array.isArray(s.jawabanBenar) ? s.jawabanBenar : [];
-                    maxPoin = corAnsArr.length; 
+                    maxPoin = 3; 
                     
-                    poinSoal = stuAnsArr.filter(val => corAnsArr.includes(val)).length;
-                    isFullyCorrect = poinSoal === maxPoin && stuAnsArr.length === corAnsArr.length;
+                    // All-or-Nothing mutlak sesuai SOP
+                    isFullyCorrect = stuAnsArr.length === corAnsArr.length && stuAnsArr.every(val => corAnsArr.includes(val));
+                    poinSoal = isFullyCorrect ? 3 : 0;
 
-                    let borderClass = 'bg-red-50 border-red-200'; let textClass = 'text-red-700';
-                    if (isFullyCorrect) { borderClass = 'bg-emerald-50 border-emerald-200'; textClass = 'text-emerald-700'; } 
-                    else if (poinSoal > 0) { borderClass = 'bg-amber-50 border-amber-200'; textClass = 'text-amber-700'; }
+                    const borderClass = isFullyCorrect ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'; 
+                    const textClass = isFullyCorrect ? 'text-emerald-700' : 'text-red-700';
 
-                    detailHtml = `<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4"><div class="p-4 rounded-xl border ${borderClass}"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Jawaban Siswa</p><ul class="space-y-1.5 text-sm font-bold ${textClass}">${stuAnsArr.length ? stuAnsArr.map(x=> `<li><i class="fas ${corAnsArr.includes(x) ? 'fa-check text-emerald-500' : 'fa-times text-red-500'} mr-1 opacity-80"></i> ${getOptText(x)}</li>`).join('') : '<li class="italic font-medium text-red-500">Tidak Dijawab</li>'}</ul></div><div class="p-4 rounded-xl border bg-slate-50 border-slate-200 shadow-sm"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Kunci Jawaban Benar</p><ul class="space-y-1.5 text-sm font-bold text-slate-700">${corAnsArr.map(x=> `<li><i class="fas fa-check-square mr-1 opacity-70 text-emerald-500"></i> ${getOptText(x)}</li>`).join('')}</ul></div></div>`;
+                    detailHtml = `<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4"><div class="p-4 rounded-xl border ${borderClass}"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Jawaban Siswa</p><ul class="space-y-3 font-bold ${textClass}">${stuAnsArr.length ? stuAnsArr.map(x=> `<li class="flex items-start gap-2.5"><i class="fas ${corAnsArr.includes(x) ? 'fa-check text-emerald-500' : 'fa-times text-red-500'} mt-1 opacity-80"></i> <div class="flex-grow">${getOptContent(x)}</div></li>`).join('') : '<li class="italic font-medium text-red-500 text-sm">Tidak Dijawab</li>'}</ul></div><div class="p-4 rounded-xl border bg-slate-50 border-slate-200 shadow-sm"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Kunci Jawaban Benar</p><ul class="space-y-3 font-bold text-slate-700">${corAnsArr.map(x=> `<li class="flex items-start gap-2.5"><i class="fas fa-check-square mt-1 opacity-70 text-emerald-500"></i> <div class="flex-grow">${getOptContent(x)}</div></li>`).join('')}</ul></div></div>`;
                 }
                 else if (s.jenis === 'BS') {
                     maxPoin = (s.pernyataan || []).length; 
                     const stuAnsObj = ans || {}; let correctCount = 0; let bsRows = '';
                     (s.pernyataan||[]).forEach((p, idx) => {
                         const sAns = stuAnsObj[idx]; const isMatch = sAns === p.kunci; if(isMatch) correctCount++;
-                        const imgHtml = (p.img && p.img.length > 10) ? `<div class="mt-2"><img src="${p.img}" class="max-h-24 w-auto rounded border border-slate-200 p-1 shadow-sm bg-white"></div>` : '';
+                        
+                        // --- PERBAIKAN: MEMAKSA CSS INLINE AGAR GAMBAR BS MUNCUL DI PDF ---
+                        const imgHtml = (p.img && p.img.length > 10) ? `<div style="margin-top: 8px;"><img src="${p.img}" style="max-height: 90px; width: auto; border: 1px solid #cbd5e1; padding: 3px; border-radius: 6px; display: block;"></div>` : '';
+                        
                         bsRows += `<tr class="border-b border-slate-100 last:border-0 hover:bg-white transition"><td class="py-3 px-3 text-sm font-medium text-slate-700 align-top">${p.teks}${imgHtml}</td><td class="py-3 px-3 text-center text-sm font-bold align-top pt-4 ${isMatch ? 'text-emerald-600 bg-emerald-50/50' : 'text-red-600 bg-red-50/50 border-x border-red-100'}">${sAns==='B'?'Benar':sAns==='S'?'Salah':'-'}</td><td class="py-3 px-3 text-center text-sm font-bold text-slate-600 align-top pt-4">${p.kunci==='B'?'Benar':'Salah'}</td></tr>`;
                     });
                     poinSoal = correctCount;
@@ -3057,7 +3068,7 @@
                     const stuAnsObj = ans || {}; let correctCount = 0; let jodohRows = '';
                     (s.kiri||[]).forEach(k => {
                         const sAns = stuAnsObj[k.id]; const cAns = s.kunciJodoh[k.id]; const isMatch = sAns === cAns; if(isMatch) correctCount++;
-                        jodohRows += `<tr class="border-b border-slate-100 last:border-0 hover:bg-white transition"><td class="py-3 px-3 text-sm font-medium text-slate-700">${k.teks}</td><td class="py-3 px-3 text-sm font-bold ${isMatch ? 'text-emerald-600 bg-emerald-50/50' : 'text-red-600 bg-red-50/50 border-x border-red-100'}">${sAns ? `<span class="bg-white border ${isMatch?'border-emerald-200':'border-red-200'} px-2 py-0.5 rounded mr-1.5 shadow-sm text-xs">${sAns}</span> ${getKananText(sAns)}` : '-'}</td><td class="py-3 px-3 text-sm font-bold text-slate-600"><span class="bg-white border border-slate-200 px-2 py-0.5 rounded mr-1.5 shadow-sm text-xs">${cAns}</span> ${getKananText(cAns)}</td></tr>`;
+                        jodohRows += `<tr class="border-b border-slate-100 last:border-0 hover:bg-white transition"><td class="py-3 px-3 text-sm font-medium text-slate-700 align-top">${k.teks}</td><td class="py-3 px-3 text-sm font-bold align-top ${isMatch ? 'text-emerald-600 bg-emerald-50/50' : 'text-red-600 bg-red-50/50 border-x border-red-100'}">${sAns ? `<span class="bg-white border ${isMatch?'border-emerald-200':'border-red-200'} px-2 py-0.5 rounded mr-1.5 shadow-sm text-xs">${sAns}</span> ${getKananText(sAns)}` : '-'}</td><td class="py-3 px-3 text-sm font-bold text-slate-600 align-top"><span class="bg-white border border-slate-200 px-2 py-0.5 rounded mr-1.5 shadow-sm text-xs">${cAns}</span> ${getKananText(cAns)}</td></tr>`;
                     });
                     poinSoal = correctCount;
                     isFullyCorrect = s.kiri?.length > 0 && correctCount === s.kiri.length;
@@ -3088,8 +3099,12 @@
 
                 const badgePoin = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-black tracking-wider uppercase ml-2 shadow-sm align-middle"><i class="fas fa-star text-amber-400"></i> Poin: ${poinSoal} / ${maxPoin}</span>`;
 
-                html += `<div class="bg-white p-5 md:p-6 rounded-[1.5rem] border border-slate-200 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] mb-6" style="page-break-inside: avoid;"><div class="flex gap-4 items-start"><div class="flex-shrink-0">${statusIcon}</div><div class="flex-grow w-full overflow-hidden"><p class="font-bold text-slate-800 text-[15px] mb-3 leading-relaxed break-words"><span class="text-indigo-600 border-b-2 border-indigo-200 pb-0.5">No ${i+1}.</span> ${badgePoin} <br><span class="inline-block mt-2">${s.teks}</span></p>${(s.gambar && s.gambar.length > 10) ? `<img src="${s.gambar}" class="max-h-48 mb-4 border border-slate-200 p-1.5 rounded-xl shadow-sm bg-slate-50">` : ''}${detailHtml}</div></div></div>`;
+                // --- PERBAIKAN: MEMAKSA CSS INLINE AGAR GAMBAR UTAMA MUNCUL DI PDF ---
+                const mainImgHtml = (s.gambar && s.gambar.length > 10) ? `<div style="margin-bottom: 12px; margin-top: 10px;"><img src="${s.gambar}" style="max-height: 180px; width: auto; border: 1px solid #cbd5e1; padding: 4px; border-radius: 8px; display: block;"></div>` : '';
+
+                html += `<div class="bg-white p-5 md:p-6 rounded-[1.5rem] border border-slate-200 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] mb-6" style="page-break-inside: avoid;"><div class="flex gap-4 items-start"><div class="flex-shrink-0">${statusIcon}</div><div class="flex-grow w-full overflow-hidden"><p class="font-bold text-slate-800 text-[15px] mb-2 leading-relaxed break-words"><span class="text-indigo-600 border-b-2 border-indigo-200 pb-0.5">No ${i+1}.</span> ${badgePoin} <br><span class="inline-block mt-2">${s.teks}</span></p>${mainImgHtml}${detailHtml}</div></div></div>`;
             });
+            
             html += `</div></div>`;
             document.getElementById('pdf-content-area').innerHTML = html; 
             document.getElementById('modal-pdf').classList.remove('hidden');
