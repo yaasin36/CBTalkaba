@@ -3744,7 +3744,7 @@
             const now = new Date();
             const valWaktu = p ? toIsoStringLocal(new Date(p.waktuMulai)) : toIsoStringLocal(now);
             const valBatas = (p && p.batasWaktu) ? toIsoStringLocal(new Date(p.batasWaktu)) : toIsoStringLocal(new Date(now.getTime() + (2 * 60 * 60 * 1000)));
-            const valMinWaktu = p ? (p.minWaktu !== undefined ? p.minWaktu : 60) : 60; // DEFAULT 60 Menit
+            const valMinWaktu = p ? (p.minWaktu !== undefined ? p.minWaktu : 30) : 30; // DEFAULT 30 Menit
 
             document.getElementById('form-crud').innerHTML = `
                 <input type="hidden" id="cpId" value="${p ? p.id : ''}">
