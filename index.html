@@ -2081,15 +2081,20 @@
                     let optHtml = `<option value="">-- Pilih Pasangan --</option>`;
                     
                     (soal.kanan || []).forEach(kn => {
-                        const txtKn = kn.teks.length > 40 ? kn.teks.substring(0,40)+'...' : kn.teks;
-                        
-                        // FITUR BARU: Kunci opsi di dropdown jika sudah dipilih di baris lain (Siswa)
-                        const isUsedByOther = usedAnswers.includes(kn.id) && ans !== kn.id;
-                        const disabledStr = isUsedByOther ? 'disabled' : '';
-                        const labelStr = isUsedByOther ? `${kn.id} - (Terpakai)` : `${kn.id} - ${txtKn}`;
-                        
-                        optHtml += `<option value="${kn.id}" ${ans===kn.id?'selected':''} ${disabledStr}>${labelStr}</option>`;
-                    });
+                    // FIX BUG: Bersihkan tag HTML (seperti <p>) agar tidak merusak elemen <option>
+                    let tempDiv = document.createElement("div");
+                    tempDiv.innerHTML = kn.teks;
+                    let plainTeks = tempDiv.textContent || tempDiv.innerText || "";
+                    
+                    const txtKn = plainTeks.length > 40 ? plainTeks.substring(0,40)+'...' : plainTeks;
+                    
+                    // FITUR BARU: Kunci opsi di dropdown jika sudah dipilih di baris lain (Siswa)
+                    const isUsedByOther = usedAnswers.includes(kn.id) && ans !== kn.id;
+                    const disabledStr = isUsedByOther ? 'disabled' : '';
+                    const labelStr = isUsedByOther ? `${kn.id} - (Terpakai)` : `${kn.id} - ${txtKn}`;
+                    
+                    optHtml += `<option value="${kn.id}" ${ans===kn.id?'selected':''} ${disabledStr}>${labelStr}</option>`;
+                });
                     
                     const changeEvt = isPreview ? '' : `simpanJawabanSiswa({idKiri:'${k.id}', idKanan:this.value}, 'JODOH')`;
                     
@@ -3002,8 +3007,18 @@
                 let detailHtml = ''; let isFullyCorrect = false;
                 let poinSoal = 0; let maxPoin = 0; 
                 
-                const getOptText = (id) => { const o = s.opsi?.find(x=>x.id===id); return o ? o.teks : id; };
-                const getKananText = (id) => { const o = s.kanan?.find(x=>x.id===id); return o ? o.teks : id; };
+                const getOptText = (id) => { 
+                    const o = s.opsi?.find(x=>x.id===id); 
+                    if(!o) return id;
+                    let tDiv = document.createElement("div"); tDiv.innerHTML = o.teks;
+                    return tDiv.textContent || tDiv.innerText || "";
+                };
+                const getKananText = (id) => { 
+                    const o = s.kanan?.find(x=>x.id===id); 
+                    if(!o) return id;
+                    let tDiv = document.createElement("div"); tDiv.innerHTML = o.teks;
+                    return tDiv.textContent || tDiv.innerText || "";
+                };
 
                 if (s.jenis === 'PG') {
                     maxPoin = 2; 
