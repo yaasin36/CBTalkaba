@@ -1186,6 +1186,7 @@
         <p class="absolute bottom-8 text-white/50 text-xs md:text-sm font-medium tracking-widest uppercase pointer-events-none drop-shadow-md bg-black/30 px-6 py-2 rounded-full backdrop-blur-md">Scroll / Pinch untuk Zoom &bull; Drag untuk Geser</p>
     </div>
 
+   
     <!-- SCRIPT LOGIKA UTAMA -->
     <script>
         // --- 1. REAL DATA STATE ---
@@ -2937,18 +2938,19 @@
         }
 
         // --- STREAMING_CHUNK:PDF Rendering Engine... ---
-        // --- FUNGSI PDF DETAIL UJIAN ---
-        function lihatDetailPDF(id) {
-            const hsl = dbHasil.find(x=>x.id==id); if(!hsl) return;
+        // --- STREAMING_CHUNK:PDF Rendering Engine... ---
+        // FUNGSI 1: PEMBUAT STRING HTML UNTUK PDF
+        function generateHTMLUntukPDF(id) {
+            const hsl = dbHasil.find(x=>x.id==id); if(!hsl) return null;
             const paket = dbPaket.find(x=>x.id===hsl.paketId);
             const soalLengkap = dbSoal.filter(s=>s.paketId === (paket ? paket.id : ''));
 
-            // 1. PRE-CALCULATE TOTAL POIN & SKOR AKHIR
+            // PRE-CALCULATE TOTAL POIN & SKOR AKHIR
             let totalRaw = 0; let maxRaw = 0;
             soalLengkap.forEach(soal => {
                 let maxPoinSoal = 0; let myPoin = 0;
                 if (soal.jenis === 'PG') maxPoinSoal = 2;
-                else if (soal.jenis === 'PGK') maxPoinSoal = 3; // FIX: PGK maksimal 3
+                else if (soal.jenis === 'PGK') maxPoinSoal = 3; 
                 else if (soal.jenis === 'BS') maxPoinSoal = Array.isArray(soal.pernyataan) ? soal.pernyataan.length : 0;
                 else if (soal.jenis === 'JODOH') maxPoinSoal = Array.isArray(soal.kiri) ? soal.kiri.length : 0;
                 else if (soal.jenis === 'ESAI') maxPoinSoal = 100;
@@ -2973,16 +2975,13 @@
                 totalRaw += myPoin;
             });
 
-            // Hitung skala 100
             let calcSkor = maxRaw > 0 ? Math.round((totalRaw / maxRaw) * 100) : 0;
 
-            // 2. AUTO-UPDATE & SYNC KE DATABASE JIKA NILAI LAMA SALAH
             if (hsl.skor !== calcSkor) {
                 hsl.skor = calcSkor;
                 if(typeof fetchGAS === 'function') fetchGAS("simpanHasil", hsl).catch(e => console.error(e));
             }
 
-            // 3. RENDER HTML PDF (Menampilkan Poin Mentah dan Skor 100)
             let html = `
             <div class="p-2 md:p-6 bg-white">
                 <div class="text-center mb-8 border-b-2 border-slate-800 pb-6">
@@ -3008,10 +3007,8 @@
 
             soalLengkap.forEach((s, i) => {
                 const ans = hsl.detail[s.id] !== undefined ? hsl.detail[s.id] : hsl.detail[i]; 
-                let detailHtml = ''; let isFullyCorrect = false;
-                let poinSoal = 0; let maxPoin = 0; 
+                let detailHtml = ''; let isFullyCorrect = false; let poinSoal = 0; let maxPoin = 0; 
                 
-                // --- PERBAIKAN: EKSTRAKTOR TEKS DAN GAMBAR UNTUK PG & JODOHKAN ---
                 const getOptContent = (id) => { 
                     const o = s.opsi?.find(x=>x.id===id); 
                     if(!o) return id;
@@ -3020,7 +3017,6 @@
                     let imgHtml = (o.img && o.img.length > 10) ? `<div style="margin-top: 6px;"><img src="${o.img}" style="max-height: 80px; width: auto; border-radius: 4px; border: 1px solid #cbd5e1; padding: 2px; display: block;"></div>` : '';
                     return `<div><span class="text-sm">${plainText}</span>${imgHtml}</div>`;
                 };
-                
                 const getKananText = (id) => { 
                     const o = s.kanan?.find(x=>x.id===id); 
                     if(!o) return id;
@@ -3039,7 +3035,6 @@
                     const corAnsArr = Array.isArray(s.jawabanBenar) ? s.jawabanBenar : [];
                     maxPoin = 3; 
                     
-                    // All-or-Nothing mutlak sesuai SOP
                     isFullyCorrect = stuAnsArr.length === corAnsArr.length && stuAnsArr.every(val => corAnsArr.includes(val));
                     poinSoal = isFullyCorrect ? 3 : 0;
 
@@ -3053,10 +3048,7 @@
                     const stuAnsObj = ans || {}; let correctCount = 0; let bsRows = '';
                     (s.pernyataan||[]).forEach((p, idx) => {
                         const sAns = stuAnsObj[idx]; const isMatch = sAns === p.kunci; if(isMatch) correctCount++;
-                        
-                        // --- PERBAIKAN: MEMAKSA CSS INLINE AGAR GAMBAR BS MUNCUL DI PDF ---
                         const imgHtml = (p.img && p.img.length > 10) ? `<div style="margin-top: 8px;"><img src="${p.img}" style="max-height: 90px; width: auto; border: 1px solid #cbd5e1; padding: 3px; border-radius: 6px; display: block;"></div>` : '';
-                        
                         bsRows += `<tr class="border-b border-slate-100 last:border-0 hover:bg-white transition"><td class="py-3 px-3 text-sm font-medium text-slate-700 align-top">${p.teks}${imgHtml}</td><td class="py-3 px-3 text-center text-sm font-bold align-top pt-4 ${isMatch ? 'text-emerald-600 bg-emerald-50/50' : 'text-red-600 bg-red-50/50 border-x border-red-100'}">${sAns==='B'?'Benar':sAns==='S'?'Salah':'-'}</td><td class="py-3 px-3 text-center text-sm font-bold text-slate-600 align-top pt-4">${p.kunci==='B'?'Benar':'Salah'}</td></tr>`;
                     });
                     poinSoal = correctCount;
@@ -3078,11 +3070,9 @@
                     maxPoin = 100;
                     const stuAns = ans || '-'; 
                     poinSoal = (hsl.koreksiEsai && hsl.koreksiEsai[s.id]) ? hsl.koreksiEsai[s.id] : 0;
-                    
                     const btnNilai = (sessionUser.role === 'superadmin' || sessionUser.mapel === hsl.mapel) 
                         ? `<button onclick="bukaKoreksiEsai(${hsl.id}, ${s.id})" class="bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold px-4 py-2 rounded-lg transition shadow-sm flex items-center gap-1.5 active:scale-95"><i class="fas fa-edit"></i> Beri Nilai: ${poinSoal} / 100</button>`
                         : `<span class="bg-amber-100 text-amber-700 text-[10px] font-bold px-3 py-1 rounded">Nilai: ${poinSoal}</span>`;
-                        
                     detailHtml = `<div class="mt-4 p-5 rounded-xl border border-amber-200 bg-amber-50 shadow-inner relative"><div class="flex justify-between items-center mb-4"><p class="text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-1.5"><i class="fas fa-pen-nib"></i> Jawaban Uraian Siswa</p>${btnNilai}</div><p class="font-medium text-slate-800 text-sm whitespace-pre-wrap leading-relaxed">${stuAns}</p></div>`;
                 }
 
@@ -3098,14 +3088,30 @@
                 }
 
                 const badgePoin = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-black tracking-wider uppercase ml-2 shadow-sm align-middle"><i class="fas fa-star text-amber-400"></i> Poin: ${poinSoal} / ${maxPoin}</span>`;
-
-                // --- PERBAIKAN: MEMAKSA CSS INLINE AGAR GAMBAR UTAMA MUNCUL DI PDF ---
                 const mainImgHtml = (s.gambar && s.gambar.length > 10) ? `<div style="margin-bottom: 12px; margin-top: 10px;"><img src="${s.gambar}" style="max-height: 180px; width: auto; border: 1px solid #cbd5e1; padding: 4px; border-radius: 8px; display: block;"></div>` : '';
 
                 html += `<div class="bg-white p-5 md:p-6 rounded-[1.5rem] border border-slate-200 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] mb-6" style="page-break-inside: avoid;"><div class="flex gap-4 items-start"><div class="flex-shrink-0">${statusIcon}</div><div class="flex-grow w-full overflow-hidden"><p class="font-bold text-slate-800 text-[15px] mb-2 leading-relaxed break-words"><span class="text-indigo-600 border-b-2 border-indigo-200 pb-0.5">No ${i+1}.</span> ${badgePoin} <br><span class="inline-block mt-2">${s.teks}</span></p>${mainImgHtml}${detailHtml}</div></div></div>`;
             });
             
             html += `</div></div>`;
+            return html;
+        }
+
+        // FUNGSI 2: CEK DETAIL PDF (SINGLE)
+        let namaFilePDFSaatIni = 'Laporan_Nilai_CBT.pdf'; // Variabel penyimpan nama file otomatis
+
+        function lihatDetailPDF(id) {
+            const hsl = dbHasil.find(x=>x.id==id); 
+            if(hsl) {
+                // Membuat format nama: Matapelajaran_Nama.pdf
+                // Fitur replace digunakan agar spasi/tanda baca diubah jadi garis bawah agar rapi
+                let mapelClean = hsl.mapel.replace(/[^a-zA-Z0-9]/g, '_');
+                let namaClean = hsl.nama.replace(/[^a-zA-Z0-9]/g, '_');
+                namaFilePDFSaatIni = `${mapelClean}_${namaClean}.pdf`;
+            }
+
+            const html = generateHTMLUntukPDF(id);
+            if(!html) return;
             document.getElementById('pdf-content-area').innerHTML = html; 
             document.getElementById('modal-pdf').classList.remove('hidden');
         }
@@ -3127,7 +3133,22 @@
             tutupKoreksiEsai(); lihatDetailPDF(hasilId); bukaDetailHasilPaket(hsl.paketId); showToast("Nilai Esai & Skor Akhir diperbarui!", "success");
         }
         function tutupModalPDF() { document.getElementById('modal-pdf').classList.add('hidden'); }
-        function downloadPDF() { const element = document.getElementById('pdf-content-area'); const opt = { margin:0.4, filename:'Laporan_Nilai_CBT.pdf', image:{type:'jpeg', quality:0.98}, html2canvas:{scale:2, useCORS:true}, jsPDF:{unit:'in', format:'a4', orientation:'portrait'} }; html2pdf().set(opt).from(element).save().then(()=>{showToast("PDF Didownload", "success");}).catch(err => { window.print(); }); }
+        function downloadPDF() { 
+            const element = document.getElementById('pdf-content-area'); 
+            const opt = { 
+                margin: 0.4, 
+                filename: namaFilePDFSaatIni, // <--- Ini yang memerintahkan ganti nama otomatis
+                image: {type:'jpeg', quality:0.98}, 
+                html2canvas: {scale:2, useCORS:true}, 
+                jsPDF: {unit:'in', format:'a4', orientation:'portrait'} 
+            }; 
+            
+            html2pdf().set(opt).from(element).save().then(()=>{
+                showToast("PDF Didownload", "success");
+            }).catch(err => { 
+                window.print(); 
+            }); 
+        }
 
         // --- ADMIN: DATA GURU (SUPERADMIN ONLY) ---
         function renderTableAdmin() {
