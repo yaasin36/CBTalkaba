@@ -218,6 +218,16 @@
                 display: block !important; text-align: center !important; font-size: 18px !important; font-weight: 900 !important; margin-bottom: 10px !important; border-bottom: 2px solid #0f172a !important; padding-bottom: 10px !important; color: #000 !important;
             }
         }
+        /* --- OPTIMASI TEKS ARAB (RTL) --- */
+        .ql-editor [dir="rtl"], [dir="rtl"] {
+            font-size: 1.8rem !important; 
+            line-height: 2.4 !important; 
+            font-family: "Amiri", "Traditional Arabic", "Scheherazade", serif !important;
+            text-align: right !important; /* Paksa nempel ke kanan otomatis */
+        }
+        
+        /* Merapikan tampilan dropdown Size di Editor */
+        .ql-snow .ql-picker-label { font-family: "Inter", sans-serif; font-weight: bold; color: #475569; }
     </style>
 </head>
 <body class="min-h-screen text-slate-800 antialiased flex flex-col bg-[#f4f7fe] selection:bg-[#0f172a] selection:text-white overflow-x-hidden">
@@ -577,11 +587,119 @@
                 <!-- TAB 2: HASIL UJIAN (HIERARKI 3 LEVEL) -->
                 <div id="tab-hasil" class="admin-tab-content hidden fade-in">
                     
-                    <!-- Level 1: Daftar Kelas -->
+                    <!-- Level 1: Daftar Kelas & Master Table -->
                     <div id="panel-kelas-hasil" class="block">
-                        <h2 class="text-lg font-black mb-1">Rekapitulasi Kelas</h2>
-                        <p class="text-sm text-slate-500 mb-6 font-medium">Pilih kelas untuk melihat rincian paket ujian yang tersedia.</p>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="grid-kelas-hasil"></div>
+                        
+                        <!-- BAGIAN ATAS: Kartu Group Kelas (REKAPITULASI) -->
+                        <div class="mb-8">
+                            <div class="flex justify-between items-end mb-4">
+                                <div>
+                                    <h2 class="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2"><i class="fas fa-folder-open text-indigo-500"></i> Rekapitulasi Per Kelas (Cetak & Export)</h2>
+                                    <p class="text-sm text-slate-500 font-medium mt-1">Buka kelas untuk mengunduh rekapitulasi nilai lengkap per paket ujian (Excel/Print).</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="grid-kelas-hasil"></div>
+                        </div>
+
+                        <!-- BAGIAN BAWAH: Master Table & Filter Global -->
+                        <div>
+                            <div class="flex justify-between items-end mb-4 pt-6 border-t border-slate-200">
+                                <div>
+                                    <h2 class="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2"><i class="fas fa-globe text-emerald-500"></i> Data Seluruh Hasil Ujian</h2>
+                                    <p class="text-sm text-slate-500 font-medium mt-1">Pantau, cari, dan filter seluruh nilai siswa secara global.</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Filter Toolbar -->
+                            <div class="bg-white p-5 pl-7 rounded-[1.5rem] shadow-sm border border-slate-200 mb-6 flex flex-col gap-4 relative overflow-hidden">
+                                <div class="absolute left-0 top-0 w-1.5 h-full bg-emerald-500"></div>
+                                
+                                <!-- Row 1: Tabs KKM -->
+                                <div class="flex gap-2 overflow-x-auto no-scrollbar w-full" id="hasil-kkm-tabs">
+                                    <button onclick="filterHasilKkm('all')" class="hasil-kkm-btn px-4 py-2.5 bg-emerald-500 text-white text-[11px] font-bold uppercase tracking-wider rounded-full whitespace-nowrap shadow-sm transition">Semua Nilai</button>
+                                    <button onclick="filterHasilKkm('tuntas')" class="hasil-kkm-btn px-4 py-2.5 bg-slate-100 text-slate-500 hover:bg-slate-200 text-[11px] font-bold uppercase tracking-wider rounded-full whitespace-nowrap transition border border-transparent"><i class="fas fa-check-circle text-emerald-500 mr-1 opacity-70"></i> Tuntas (≥ 83)</button>
+                                    <button onclick="filterHasilKkm('remidial')" class="hasil-kkm-btn px-4 py-2.5 bg-slate-100 text-slate-500 hover:bg-slate-200 text-[11px] font-bold uppercase tracking-wider rounded-full whitespace-nowrap transition border border-transparent"><i class="fas fa-exclamation-circle text-red-500 mr-1 opacity-70"></i> Remidial (< 83)</button>
+                                </div>
+                                
+                                <!-- Row 2: Search & Advanced Filters -->
+                                <div class="flex flex-col gap-3 w-full">
+                                    <!-- Search Global -->
+                                    <div class="relative w-full">
+                                        <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400"><i class="fas fa-search"></i></span>
+                                        <input type="text" id="filterHasilNama" oninput="currentPageHasil = 1; renderMasterTabelHasil()" class="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-semibold focus:outline-none focus:border-emerald-500 focus:bg-white transition shadow-inner" placeholder="Cari nama atau NIS siswa...">
+                                    </div>
+                                    
+                                    <!-- Dropdown Filters -->
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
+                                        <!-- Kelas (Select Normal) -->
+                                        <div class="relative">
+                                            <select id="filterHasilKelas" onchange="updateFilterPaketHasil(); currentPageHasil = 1; renderMasterTabelHasil()" class="w-full border border-slate-200 rounded-xl px-4 py-3.5 bg-white text-sm font-bold text-slate-600 outline-none focus:border-emerald-500 cursor-pointer shadow-sm appearance-none transition">
+                                                <option value="all">Semua Kelas</option>
+                                            </select>
+                                            <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 pointer-events-none"><i class="fas fa-chevron-down text-xs"></i></span>
+                                        </div>
+                                        
+                                        <!-- Tanggal Ujian (Dinamis dari Paket) -->
+                                        <div class="relative">
+                                            <select id="filterHasilTanggal" onchange="updateFilterPaketHasil(); currentPageHasil = 1; renderMasterTabelHasil()" class="w-full border border-slate-200 rounded-xl px-4 py-3.5 bg-white text-sm font-bold text-slate-600 outline-none focus:border-emerald-500 cursor-pointer shadow-sm appearance-none transition">
+                                                <option value="all">Semua Tanggal</option>
+                                            </select>
+                                            <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 pointer-events-none"><i class="fas fa-chevron-down text-xs"></i></span>
+                                        </div>
+
+                                        <!-- Paket (Select Normal, Dinamis) -->
+                                        <div class="relative">
+                                            <select id="filterHasilPaket" onchange="currentPageHasil = 1; renderMasterTabelHasil()" class="w-full border border-slate-200 rounded-xl px-4 py-3.5 bg-white text-sm font-bold text-slate-600 outline-none focus:border-emerald-500 cursor-pointer shadow-sm appearance-none transition pr-8 truncate">
+                                                <option value="all">Semua Paket Ujian</option>
+                                            </select>
+                                            <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 pointer-events-none"><i class="fas fa-chevron-down text-xs"></i></span>
+                                        </div>
+                                        
+                                        <!-- Urutkan (Sorting) -->
+                                        <div class="relative">
+                                            <select id="filterHasilSort" onchange="currentPageHasil = 1; renderMasterTabelHasil()" class="w-full border border-slate-200 rounded-xl px-4 py-3.5 bg-white text-sm font-bold text-slate-600 outline-none focus:border-emerald-500 cursor-pointer shadow-sm appearance-none transition">
+                                                <option value="tertinggi">Nilai: Tertinggi ➔ Terendah</option>
+                                                <option value="terendah">Nilai: Terendah ➔ Tertinggi</option>
+                                                <option value="terbaru">Waktu: Terbaru ➔ Terlama</option>
+                                            </select>
+                                            <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 pointer-events-none"><i class="fas fa-sort-amount-down"></i></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Master Table -->
+                            <div class="bg-white border border-slate-200 rounded-[1.5rem] shadow-sm overflow-hidden mb-8 flex flex-col">
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left text-sm whitespace-nowrap">
+                                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-black uppercase text-[10px] tracking-wider">
+                                            <tr>
+                                                <th class="p-4 pl-6">Waktu Submit</th>
+                                                <th class="p-4">Siswa</th>
+                                                <th class="p-4 text-center">Kelas</th>
+                                                <th class="p-4">Paket Ujian</th>
+                                                <th class="p-4 text-center">Durasi</th>
+                                                <th class="p-4 text-center">Skor Akhir</th>
+                                                <th class="p-4 text-right pr-6">Aksi Detail</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbody-master-hasil" class="divide-y divide-slate-100 font-medium text-slate-700">
+                                            <!-- Disuntik JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <!-- Pagination -->
+                                <div class="p-5 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row justify-between items-center gap-4 rounded-b-[1.5rem]">
+                                    <p class="text-xs text-slate-500 font-medium"><i class="fas fa-info-circle mr-1 text-emerald-500"></i> Menampilkan <span id="hasil-count-display" class="font-bold text-slate-800">0</span> dari <span id="hasil-total-display" class="font-bold text-slate-800">0</span> data ujian.</p>
+                                    <div class="flex items-center gap-3">
+                                        <button onclick="changePageHasil(-1)" id="btn-prev-hasil" class="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-100 text-xs font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"><i class="fas fa-chevron-left"></i></button>
+                                        <span class="text-xs font-bold text-slate-600">Hal <span id="hasil-page-display">1</span> / <span id="hasil-max-page">1</span></span>
+                                        <button onclick="changePageHasil(1)" id="btn-next-hasil" class="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-100 text-xs font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"><i class="fas fa-chevron-right"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Level 2: Daftar Paket Ujian per Kelas -->
@@ -1075,13 +1193,13 @@
                     </div>
                 </header>
 
-                <main class="max-w-7xl mx-auto w-full px-4 md:px-8 py-6 flex flex-col lg:flex-row gap-6 mt-4">
-                    <!-- Area Soal Kiri -->
-                    <div class="flex-grow lg:w-3/4 flex flex-col gap-5">
+                <main class="max-w-5xl mx-auto w-full px-4 md:px-8 py-6 flex flex-col gap-6 mt-4">
+                    <!-- Area Soal (Lebar Penuh di Tengah) -->
+                    <div class="w-full flex flex-col gap-5">
                         <div class="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-slate-200 flex-grow relative overflow-hidden pointer-events-auto">
                             <div class="absolute top-0 left-0 w-1.5 h-full bg-indigo-500"></div>
                             <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
-                                <h2 class="text-xl font-black text-slate-800 tracking-tight">Soal No. <span class="text-indigo-600 text-2xl ml-1">1</span></h2>
+                                <h2 class="text-xl font-black text-slate-800 tracking-tight">Soal No. <span id="preview-soal-nomor" class="text-indigo-600 text-2xl ml-1">1</span></h2>
                                 <span id="preview-label-jenis" class="text-[10px] font-bold text-slate-400 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-sm">Jenis</span>
                             </div>
                             <!-- Area Soal Disuntik (Bisa di-klik/diuji interaksinya) -->
@@ -1099,26 +1217,6 @@
                             </label>
                             <button class="px-6 py-3.5 bg-[#0f172a] text-white rounded-xl font-bold shadow-md text-sm flex items-center gap-2">
                                 Selanjutnya <i class="fas fa-arrow-right"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Palet Navigasi Kanan (MOCK) -->
-                    <div class="lg:w-1/4 w-full flex flex-col gap-5 opacity-60 pointer-events-none select-none grayscale">
-                        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 sticky top-4">
-                            <h3 class="font-black text-slate-800 mb-4 pb-3 border-b border-slate-100 tracking-tight flex items-center"><i class="fas fa-th-large mr-2 text-indigo-500"></i>Navigasi Soal</h3>
-                            <div class="flex flex-wrap gap-3 mb-6 text-[10px] font-bold uppercase tracking-wider text-slate-500 justify-center">
-                                <div class="flex items-center gap-1.5"><div class="w-3 h-3 bg-[#0f172a] rounded-[4px]"></div> Dijawab</div>
-                                <div class="flex items-center gap-1.5"><div class="w-3 h-3 bg-amber-400 rounded-[4px]"></div> Ragu</div>
-                                <div class="flex items-center gap-1.5"><div class="w-3 h-3 border-2 border-slate-200 bg-white rounded-[4px]"></div> Kosong</div>
-                            </div>
-                            <div class="grid grid-cols-5 gap-2.5">
-                                <div class="w-full aspect-square flex items-center justify-center rounded-xl font-bold text-xs bg-[#0f172a] text-white border-2 border-slate-800 shadow-sm ring-2 ring-indigo-400 ring-offset-1">1</div>
-                                <div class="w-full aspect-square flex items-center justify-center rounded-xl font-bold text-xs bg-white text-slate-500 border-2 border-slate-200 shadow-sm">2</div>
-                                <div class="w-full aspect-square flex items-center justify-center rounded-xl font-bold text-xs bg-amber-400 text-amber-900 border-2 border-amber-500 shadow-sm">3</div>
-                            </div>
-                            <button class="w-full mt-6 bg-red-50 text-red-600 border border-red-200 font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 text-sm shadow-sm">
-                                <i class="fas fa-flag-checkered"></i> Selesai Ujian
                             </button>
                         </div>
                     </div>
@@ -1458,9 +1556,12 @@
         const quillOptions = {
             modules: {
                 toolbar: [
+                    [{ 'size': ['small', false, 'large', 'huge'] }], // Menu Ukuran Font
                     ['bold', 'italic', 'underline'],
+                    [{ 'script': 'sub'}, { 'script': 'super' }], // Menu Pangkat (Bonus buat guru Matematika/Sains)
                     [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                     [{ 'align': [] }],
+                    [{ 'direction': 'rtl' }], // Menu Teks Kanan-ke-Kiri (Sangat Penting untuk Arab)
                     ['clean']
                 ],
                 keyboard: {
@@ -1610,8 +1711,13 @@
             const grid = document.getElementById('grid-student-paket'); 
             grid.innerHTML = '';
             
-            // Filter paket untuk kelas siswa ini
-            let myPakets = dbPaket.filter(p => p.aktif && (p.targetKelas.includes('ALL') || p.targetKelas.includes(currentSiswa.kelas)));
+            // Filter paket untuk kelas siswa ini (KEBAL ERROR EXCEL)
+            let myClass = String(currentSiswa.kelas).trim().toUpperCase();
+            let myPakets = dbPaket.filter(p => {
+                let isAktif = String(p.aktif).toUpperCase() !== 'FALSE';
+                let targetStr = JSON.stringify(p.targetKelas).toUpperCase();
+                return isAktif && (targetStr.includes('ALL') || targetStr.includes('SEMUA') || targetStr.includes(myClass));
+            });
             
             if(myPakets.length === 0) {
                 grid.innerHTML = '<div class="col-span-full p-12 text-center text-slate-500 font-medium bg-white rounded-[2rem] border border-slate-200 shadow-sm"><i class="fas fa-bed text-4xl mb-4 text-slate-300 block"></i>Belum ada jadwal ujian untuk kelas Anda saat ini.</div>';
@@ -1622,31 +1728,27 @@
             myPakets.sort((a, b) => new Date(a.waktuMulai) - new Date(b.waktuMulai));
 
             const now = new Date();
-            // Ambil waktu persis jam 00:00:00 untuk komparasi hari
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
 
-            // Objek untuk mengelompokkan paket ujian
+            // --- REVISI: PENGELOMPOKAN BARU SESUAI STATUS SISWA ---
             const groups = {
                 'Hari Ini': [],
-                'Besok': [],
-                'Akan Datang': [],
+                'Belum Ujian (Susulan)': [],
                 'Riwayat Ujian': []
             };
 
-            // Masukkan paket ke kelompok yang sesuai
             myPakets.forEach(p => {
-                const startDate = new Date(p.waktuMulai);
-                const pDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-                
-                if (pDate.getTime() === today.getTime()) {
-                    groups['Hari Ini'].push(p);
-                } else if (pDate.getTime() === tomorrow.getTime()) {
-                    groups['Besok'].push(p);
-                } else if (pDate > tomorrow) {
-                    groups['Akan Datang'].push(p);
-                } else {
+                const endTime = new Date(p.batasWaktu);
+                // Cek apakah siswa ini sudah mengerjakan paket ini
+                const isFinished = dbHasil.some(h => String(h.siswaId) === String(currentSiswa.id) && h.paketId === p.id);
+
+                if (isFinished) {
                     groups['Riwayat Ujian'].push(p);
+                } else if (now > endTime) {
+                    // Waktu sudah habis tapi siswa belum mengerjakan
+                    groups['Belum Ujian (Susulan)'].push(p);
+                } else {
+                    // Waktu ujian sedang aktif atau akan datang
+                    groups['Hari Ini'].push(p);
                 }
             });
 
@@ -1659,8 +1761,8 @@
                 let color = 'text-indigo-600';
                 
                 if(groupName === 'Hari Ini') { icon = 'fas fa-calendar-check'; color = 'text-emerald-500'; }
-                if(groupName === 'Besok') { icon = 'fas fa-calendar-plus'; color = 'text-amber-500'; }
-                if(groupName === 'Riwayat Ujian') { icon = 'fas fa-history'; color = 'text-slate-500'; }
+                if(groupName === 'Belum Ujian (Susulan)') { icon = 'fas fa-exclamation-triangle'; color = 'text-amber-500'; }
+                if(groupName === 'Riwayat Ujian') { icon = 'fas fa-check-double'; color = 'text-slate-500'; }
 
                 // 1. Render Judul Pemisah Grup (Full Width Column)
                 grid.innerHTML += `
@@ -1705,7 +1807,7 @@
 
                     grid.innerHTML += `
                     <div class="${cardStyle} border border-slate-200 rounded-[2rem] p-6 shadow-sm transition-all duration-300 flex flex-col relative overflow-hidden group fade-in">
-                        <div class="absolute top-0 left-0 w-full h-1.5 bg-indigo-500"></div>
+                        <div class="absolute top-0 left-0 w-1.5 h-full bg-indigo-500"></div>
                         
                         <div class="flex justify-between items-start mb-3">
                             <div class="bg-slate-50 border border-slate-200 text-slate-500 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl shadow-sm">${p.mapel}</div>
@@ -2419,24 +2521,76 @@
         }
 
         async function akhiriUjian() {
-            isExamActive = false; isExamFinished = true; clearInterval(timerInterval); tutupModalSelesai(); exitFullscreen(); document.getElementById('view-exam').classList.remove('exam-active-mode');
+            // JEDA DULU: Cek apakah perangkat memiliki koneksi internet aktif
+            if (!navigator.onLine) {
+                tutupModalSelesai();
+                return showToast("Koneksi Terputus! Cek sinyal internet Anda lalu klik Selesai lagi.", "error");
+            }
+
+            isExamActive = false; 
+            isExamFinished = true; 
+            clearInterval(timerInterval); 
+            tutupModalSelesai(); 
+            exitFullscreen(); 
+            document.getElementById('view-exam').classList.remove('exam-active-mode');
+            
             let durasiDetik = waktuMulaiUjian ? Math.floor((new Date() - waktuMulaiUjian) / 1000) : 0;
             const durasiStr = `${Math.floor(durasiDetik / 60)} Menit ${durasiDetik % 60} Detik`;
-            switchView('view-loading'); document.getElementById("loading-text").innerText = "Menyimpan ke Server...";
+            
+            switchView('view-loading'); 
+            document.getElementById("loading-text").innerText = "Menyimpan ke Server (Jangan Tutup Layar)...";
 
-            currentSiswa.statusUjian = true; fetchGAS("simpanSiswa", currentSiswa);
-            const finalData = { id: Date.now(), siswaId: currentSiswa.id || currentSiswa.username, nama: currentSiswa.nama, kelas: currentSiswa.kelas, paketId: activePaket.id, mapel: activePaket.mapel, detail: jawabanSiswa, durasi: durasiStr, koreksiEsai: {} };
-            finalData.skor = hitungSkorTotal(finalData); dbHasil.push(finalData); await fetchGAS('simpanHasil', finalData);
+            // Siapkan Data
+            const finalData = { 
+                id: Date.now(), 
+                siswaId: currentSiswa.id || currentSiswa.username, 
+                nama: currentSiswa.nama, 
+                kelas: currentSiswa.kelas, 
+                paketId: activePaket.id, 
+                mapel: activePaket.mapel, 
+                detail: jawabanSiswa, 
+                durasi: durasiStr, 
+                koreksiEsai: {} 
+            };
+            finalData.skor = hitungSkorTotal(finalData); 
 
-            kirimLogSistem("Selesai Ujian", `Menyelesaikan paket ${activePaket.nama} dengan skor ${finalData.skor}`); // PENAMBAHAN LOG
-            sessionStorage.removeItem(`exam_state_${currentSiswa.id}_${activePaket.id}`);
+            try {
+                // TEMBAK KE SERVER DAN TUNGGU STATUSNYA
+                const res = await fetchGAS('simpanHasil', finalData);
+                
+                // JIKA SUKSES TERSIMPAN DI GOOGLE SHEETS
+                if (res && res.status === "success") {
+                    currentSiswa.statusUjian = true; 
+                    fetchGAS("simpanSiswa", currentSiswa);
+                    dbHasil.push(finalData); 
+                    
+                    kirimLogSistem("Selesai Ujian", `Menyelesaikan paket ${activePaket.nama} dengan skor ${finalData.skor}`); 
+                    
+                    // BARU HAPUS CADANGAN DI HP SISWA JIKA BENAR-BENAR SUKSES
+                    sessionStorage.removeItem(`exam_state_${currentSiswa.id}_${activePaket.id}`);
 
-            setTimeout(() => {
-                const now = new Date();
-                document.getElementById('finish-nama').textContent = currentSiswa.nama; document.getElementById('finish-mapel').textContent = activePaket.nama;
-                document.getElementById('finish-waktu').textContent = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} WIB`; document.getElementById('finish-durasi').textContent = durasiStr;
-                switchView('view-finish');
-            }, 1000);
+                    setTimeout(() => {
+                        const now = new Date();
+                        document.getElementById('finish-nama').textContent = currentSiswa.nama; 
+                        document.getElementById('finish-mapel').textContent = activePaket.nama;
+                        document.getElementById('finish-waktu').textContent = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} WIB`; 
+                        document.getElementById('finish-durasi').textContent = durasiStr;
+                        switchView('view-finish');
+                    }, 1000);
+                } else {
+                    throw new Error("Server menolak atau gagal merespon.");
+                }
+            } catch (err) {
+                // JIKA INTERNET PUTUS ATAU GAGAL SAAT LOADING:
+                // Kembalikan ke mode ujian, jangan hapus jawaban!
+                showToast("Gagal menyimpan ke server! Periksa internet Anda lalu klik Selesai lagi.", "error");
+                document.getElementById('view-loading').classList.add('hidden');
+                document.getElementById('view-exam').classList.add('exam-active-mode');
+                
+                isExamActive = true;
+                isExamFinished = false;
+                mulaiTimerSiswa(); // Nyalakan lagi timernya
+            }
         }
 
         async function bukaBlokir(e) {
@@ -2636,16 +2790,78 @@
             chartPartInst = new Chart(document.getElementById('chartPartisipasi'), { type: 'doughnut', data: { labels: ['Sudah (Berdasarkan Mapel)', 'Belum'], datasets: [{data: [partisipanSelesai, blm], backgroundColor: ['#10b981', '#f43f5e'], borderWidth:0}] }, options: {responsive: true, maintainAspectRatio: false, cutout:'75%'} });
         }
 
-        // --- ADMIN HASIL: HIERARKI 3 LEVEL ---
+        // --- ADMIN HASIL: MASTER TABEL & HIERARKI ---
         let tempKelasHasil = null; let tempPaketHasil = null;
+        let currentPageHasil = 1;
+        const HASIL_PER_PAGE = 25;
+        let currentKkmFilter = 'all'; // <-- BARU UNTUK KKM
 
-        // Level 1: Render Kelas
+        // --- FITUR BARU: TOMBOL FILTER KKM ---
+        function filterHasilKkm(type) {
+            currentKkmFilter = type;
+            currentPageHasil = 1;
+            
+            // Reset semua tombol jadi abu-abu
+            const btns = document.querySelectorAll('.hasil-kkm-btn');
+            btns.forEach(btn => {
+                btn.className = 'hasil-kkm-btn px-4 py-2.5 bg-slate-100 text-slate-500 hover:bg-slate-200 text-[11px] font-bold uppercase tracking-wider rounded-full whitespace-nowrap transition border border-transparent';
+            });
+            
+            // Warnai tombol yang aktif (Hijau untuk Tuntas, Merah untuk Remidial)
+            const btnIndex = type === 'all' ? 0 : (type === 'tuntas' ? 1 : 2);
+            if (btns[btnIndex]) {
+                const colorClass = type === 'remidial' ? 'bg-red-500' : 'bg-emerald-500';
+                btns[btnIndex].className = `hasil-kkm-btn px-4 py-2.5 ${colorClass} text-white text-[11px] font-bold uppercase tracking-wider rounded-full whitespace-nowrap shadow-sm transition`;
+            }
+            
+            renderMasterTabelHasil();
+        }
+
+        // Level 1: Render Master Table & Kartu Kelas
         function renderTingkatKelasHasil() {
-            const grid = document.getElementById('grid-kelas-hasil'); grid.innerHTML = '';
-            const uniqueClasses = [...new Set(dbSiswa.map(s => s.kelas))].sort();
             const isGuru = sessionUser.role === 'admin';
             const myMapel = isGuru ? sessionUser.mapel : null;
 
+            // 1. Siapkan Dropdown Select Kelas
+            const uniqueClasses = [...new Set(dbSiswa.map(s => s.kelas))].sort();
+            const selectKelas = document.getElementById('filterHasilKelas');
+            if (selectKelas && selectKelas.options.length <= 1) {
+                let optKelas = '<option value="all">Semua Kelas</option>';
+                uniqueClasses.forEach(c => optKelas += `<option value="${c}">${c}</option>`);
+                selectKelas.innerHTML = optKelas;
+            }
+
+            // 2. Siapkan Dropdown Tanggal (Dari Tanggal Paket Ujian)
+            const selectTanggal = document.getElementById('filterHasilTanggal');
+            if (selectTanggal && selectTanggal.options.length <= 1) {
+                const pktAktif = isGuru ? dbPaket.filter(p => p.mapel === myMapel) : dbPaket;
+                const uniqueDates = [...new Set(pktAktif.map(p => {
+                    if(!p.waktuMulai) return "";
+                    const d = new Date(p.waktuMulai);
+                    return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                }).filter(d => d !== ""))].sort((a,b) => new Date(a) - new Date(b)); // <--- DIUBAH MENJADI a - b (Urut dari terkecil/terlama ke terbaru)
+
+                let optTanggal = '<option value="all">Semua Tanggal</option>';
+                uniqueDates.forEach(dateStr => {
+                    const d = new Date(dateStr);
+                    const displayDate = d.toLocaleString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
+                    optTanggal += `<option value="${dateStr}">${displayDate}</option>`;
+                });
+                selectTanggal.innerHTML = optTanggal;
+            }
+
+            // 3. Siapkan Dropdown Filter Paket Awal (Berdasarkan Kelas & Tanggal)
+            if (typeof window.updateFilterPaketHasil === 'function') {
+                window.updateFilterPaketHasil();
+            } else {
+                updateFilterPaketHasil();
+            }
+
+            // 4. Render Tabel Master Utama
+            renderMasterTabelHasil();
+
+            // 5. Render Kartu Rekap Per Kelas
+            const grid = document.getElementById('grid-kelas-hasil'); grid.innerHTML = '';
             uniqueClasses.forEach(c => {
                 const swa = dbSiswa.filter(s => s.kelas === c);
                 const hsl = isGuru ? dbHasil.filter(h => h.kelas === c && h.mapel === myMapel) : dbHasil.filter(h => h.kelas === c);
@@ -2667,6 +2883,175 @@
             });
         }
 
+        // FUNGSI UPDATE DROPDOWN PAKET BERDASARKAN KELAS & TANGGAL YG DIPILIH
+        window.updateFilterPaketHasil = function() {
+            const isGuru = sessionUser.role === 'admin';
+            const myMapel = isGuru ? sessionUser.mapel : null;
+            
+            const kelasInput = document.getElementById('filterHasilKelas')?.value || 'all';
+            const tanggalInput = document.getElementById('filterHasilTanggal')?.value || 'all';
+            const selPaket = document.getElementById('filterHasilPaket');
+            
+            if (!selPaket) return;
+
+            let pktAktif = isGuru ? dbPaket.filter(p => p.mapel === myMapel) : dbPaket;
+
+            // Jika admin memilih kelas tertentu
+            if (kelasInput !== 'all') {
+                pktAktif = pktAktif.filter(p => {
+                    let targetStr = JSON.stringify(p.targetKelas).toUpperCase();
+                    return targetStr.includes('ALL') || targetStr.includes('SEMUA') || targetStr.includes(kelasInput.toUpperCase());
+                });
+            }
+
+            // Jika admin memilih tanggal tertentu
+            if (tanggalInput !== 'all') {
+                pktAktif = pktAktif.filter(p => {
+                    if(!p.waktuMulai) return false;
+                    const d = new Date(p.waktuMulai);
+                    const tzDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    return tzDate === tanggalInput;
+                });
+            }
+
+            // Masukkan nama-nama paket ke Dropdown
+            let optPaket = '<option value="all">Semua Paket Ujian</option>';
+            pktAktif.forEach(p => {
+                optPaket += `<option value="${p.id}">${p.nama}</option>`;
+            });
+            selPaket.innerHTML = optPaket;
+        };
+
+        // ENGINE MASTER TABLE (Pencarian, Filter, Sort, Pagination)
+        function renderMasterTabelHasil() {
+            const tbody = document.getElementById('tbody-master-hasil');
+            if (!tbody) return;
+            
+            const isGuru = sessionUser.role === 'admin';
+            const myMapel = isGuru ? sessionUser.mapel : null;
+            
+            // 1. Ambil data asli
+            let filteredData = isGuru ? dbHasil.filter(h => h.mapel === myMapel) : [...dbHasil];
+
+            // 2. Ambil nilai input dari UI
+            const searchVal = (document.getElementById('filterHasilNama')?.value || '').toLowerCase();
+            const kelasVal = document.getElementById('filterHasilKelas')?.value || 'all';
+            const paketVal = document.getElementById('filterHasilPaket')?.value || 'all';
+            const tanggalVal = document.getElementById('filterHasilTanggal')?.value || 'all'; 
+            const sortVal = document.getElementById('filterHasilSort')?.value || 'tertinggi';
+
+            // 3. Terapkan Filter Dropdown Kelas & Paket & Tanggal
+            if (kelasVal !== 'all') {
+                filteredData = filteredData.filter(h => String(h.kelas) === kelasVal);
+            }
+            if (paketVal !== 'all') {
+                filteredData = filteredData.filter(h => String(h.paketId) === paketVal);
+            }
+            if (tanggalVal !== 'all') {
+                filteredData = filteredData.filter(h => {
+                    const p = dbPaket.find(x => x.id === h.paketId);
+                    if (!p || !p.waktuMulai) return false;
+                    const d = new Date(p.waktuMulai);
+                    const tzDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    return tzDate === tanggalVal;
+                });
+            }
+            
+            // 4. Terapkan Filter KKM Tuntas/Remidial
+            if (currentKkmFilter === 'tuntas') {
+                filteredData = filteredData.filter(h => Number(h.skor) >= 83);
+            } else if (currentKkmFilter === 'remidial') {
+                filteredData = filteredData.filter(h => Number(h.skor) < 83);
+            }
+            
+            // 5. Pencarian Ketik Nama/NIS
+            if (searchVal) {
+                filteredData = filteredData.filter(h => 
+                    h.nama.toLowerCase().includes(searchVal) || 
+                    String(h.siswaId).toLowerCase().includes(searchVal)
+                );
+            }
+
+            // 6. Pengurutan (Sorting) - Defaultnya Tertinggi
+            filteredData.sort((a, b) => {
+                if (sortVal === 'tertinggi') {
+                    if(b.skor !== a.skor) return Number(b.skor) - Number(a.skor);
+                    return Number(b.id) - Number(a.id); // Jika skor sama, terbaru di atas
+                }
+                if (sortVal === 'terendah') {
+                    if(a.skor !== b.skor) return Number(a.skor) - Number(b.skor);
+                    return Number(b.id) - Number(a.id);
+                }
+                if (sortVal === 'terbaru') return Number(b.id) - Number(a.id);
+                if (sortVal === 'terlama') return Number(a.id) - Number(b.id);
+                return 0;
+            });
+
+            // 7. Hitung Halaman (Pagination)
+            const totalData = filteredData.length;
+            const maxPage = Math.ceil(totalData / HASIL_PER_PAGE) || 1;
+            if (currentPageHasil > maxPage) currentPageHasil = maxPage;
+            if (currentPageHasil < 1) currentPageHasil = 1;
+
+            const startIdx = (currentPageHasil - 1) * HASIL_PER_PAGE;
+            const endIdx = Math.min(startIdx + HASIL_PER_PAGE, totalData);
+            const paginatedData = filteredData.slice(startIdx, endIdx);
+
+            // 8. Update UI Pagination Text & Buttons
+            document.getElementById('hasil-count-display').innerText = totalData === 0 ? 0 : `${startIdx + 1} - ${endIdx}`;
+            document.getElementById('hasil-total-display').innerText = totalData;
+            document.getElementById('hasil-page-display').innerText = currentPageHasil;
+            document.getElementById('hasil-max-page').innerText = maxPage;
+
+            const btnPrev = document.getElementById('btn-prev-hasil');
+            const btnNext = document.getElementById('btn-next-hasil');
+            if(btnPrev) btnPrev.disabled = currentPageHasil <= 1;
+            if(btnNext) btnNext.disabled = currentPageHasil >= maxPage;
+
+            // 9. Render Data ke Layar
+            tbody.innerHTML = '';
+            if (paginatedData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-400 font-medium">Tidak ada data hasil ujian yang cocok dengan filter.</td></tr>';
+                return;
+            }
+
+            paginatedData.forEach(h => {
+                const p = dbPaket.find(x => x.id === h.paketId);
+                const namaPaket = p ? p.nama : h.paketId;
+                const isTuntas = Number(h.skor) >= 83;
+                const skorHtml = `<span class="font-black text-lg ${isTuntas ? 'text-emerald-600' : 'text-red-500'}">${h.skor}</span>`;
+                
+                tbody.innerHTML += `
+                <tr class="hover:bg-slate-50 transition border-b border-slate-100 group">
+                    <td class="p-4 pl-6 align-middle">
+                        <span class="text-[11px] font-bold text-slate-500 block"><i class="far fa-clock mr-1 text-slate-400"></i> ${h.wkt}</span>
+                    </td>
+                    <td class="p-4 align-middle">
+                        <span class="font-bold text-slate-800 text-sm block">${h.nama}</span>
+                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">${h.siswaId}</span>
+                    </td>
+                    <td class="p-4 text-center align-middle">
+                        <span class="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200">${h.kelas}</span>
+                    </td>
+                    <td class="p-4 align-middle">
+                        <span class="font-bold text-slate-700 text-xs block w-[180px] truncate" title="${namaPaket}">${namaPaket}</span>
+                        <span class="text-[9px] font-black text-indigo-500 uppercase tracking-widest">${h.mapel}</span>
+                    </td>
+                    <td class="p-4 text-center align-middle text-[11px] font-bold text-slate-500">${h.durasi}</td>
+                    <td class="p-4 text-center align-middle">${skorHtml}</td>
+                    <td class="p-4 text-right pr-6 align-middle">
+                        <button onclick="lihatDetailPDF(${h.id})" class="text-[10px] bg-white border border-indigo-200 text-indigo-600 px-3 py-2 rounded-lg hover:bg-indigo-600 hover:text-white font-bold shadow-sm transition inline-flex items-center gap-1.5"><i class="fas fa-file-pdf text-red-500 group-hover:text-white transition"></i> Buka PDF</button>
+                    </td>
+                </tr>`;
+            });
+        }
+
+        // Fungsi Tombol Ganti Halaman
+        function changePageHasil(delta) {
+            currentPageHasil += delta;
+            renderMasterTabelHasil();
+        }
+
         // Level 2: Render Paket per Kelas
         function bukaRekapPaket(kelas) {
             tempKelasHasil = kelas;
@@ -2679,8 +3064,12 @@
             const isGuru = sessionUser.role === 'admin';
             const myMapel = isGuru ? sessionUser.mapel : null;
             
-            // Ambil paket yang targetnya termasuk kelas ini
-            let pktAktif = dbPaket.filter(p => p.targetKelas.includes('ALL') || p.targetKelas.includes(kelas));
+            // Ambil paket yang targetnya termasuk kelas ini (KEBAL ERROR EXCEL)
+            let searchClass = String(kelas).trim().toUpperCase();
+            let pktAktif = dbPaket.filter(p => {
+                let targetStr = JSON.stringify(p.targetKelas).toUpperCase();
+                return targetStr.includes('ALL') || targetStr.includes('SEMUA') || targetStr.includes(searchClass);
+            });
             if(isGuru) pktAktif = pktAktif.filter(p => p.mapel === myMapel);
 
             if(pktAktif.length === 0) return grid.innerHTML = '<div class="col-span-full p-10 text-center text-slate-500 font-medium border border-dashed border-slate-300 rounded-3xl">Belum ada paket ujian untuk kelas ini.</div>';
@@ -3157,7 +3546,7 @@
             
             dbAdmin.forEach(a => {
                 const canDelete = dbAdmin.length > 1; 
-                const btnHapus = canDelete ? `<button onclick="bukaAdminConfirm('Hapus Akun?', 'Akun ini tidak akan bisa login lagi.', () => { dbAdmin = dbAdmin.filter(x=>x.id != ${a.id}); fetchGAS('hapusAdmin', {id: ${a.id}}); renderTableAdmin(); })" class="text-red-500 bg-red-50 hover:bg-red-500 hover:text-white w-8 h-8 rounded-lg flex items-center justify-center transition border border-red-100 shadow-sm" title="Hapus"><i class="fas fa-trash text-xs"></i></button>` : `<button class="text-slate-300 bg-slate-50 w-8 h-8 rounded-lg flex items-center justify-center cursor-not-allowed border border-slate-100" title="Akun terakhir"><i class="fas fa-trash text-xs"></i></button>`;
+                const btnHapus = canDelete ? `<button onclick="bukaAdminConfirm('Hapus Akun?', 'Akun ini tidak akan bisa login lagi.', () => { dbAdmin = dbAdmin.filter(x=>String(x.id) !== '${a.id}'); fetchGAS('hapusAdmin', {id: '${a.id}'}); renderTableAdmin(); })" class="text-red-500 bg-red-50 hover:bg-red-500 hover:text-white w-8 h-8 rounded-lg flex items-center justify-center transition border border-red-100 shadow-sm" title="Hapus"><i class="fas fa-trash text-xs"></i></button>` : `<button class="text-slate-300 bg-slate-50 w-8 h-8 rounded-lg flex items-center justify-center cursor-not-allowed border border-slate-100" title="Akun terakhir"><i class="fas fa-trash text-xs"></i></button>`;
                 const roleBadge = a.role === 'superadmin' ? '<span class="bg-indigo-50 border border-indigo-100 text-indigo-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest"><i class="fas fa-crown mr-1"></i> Panitia</span>' : '<span class="bg-slate-50 border border-slate-200 text-slate-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest"><i class="fas fa-chalkboard-teacher mr-1"></i> Guru</span>';
                 
                 tbody.innerHTML += `
@@ -3249,7 +3638,7 @@
                     <td class="p-4 text-center">${stat}</td>
                     <td class="p-4 text-center">
                         <button onclick="bukaModalSiswa('${s.id}')" class="text-indigo-600 bg-indigo-50 hover:bg-indigo-600 hover:text-white w-8 h-8 rounded-lg inline-flex items-center justify-center transition border border-indigo-100 shadow-sm mr-1"><i class="fas fa-edit text-xs"></i></button>
-                        <button onclick="bukaAdminConfirm('Hapus Siswa?', 'Data siswa ini akan dihapus permanen.', () => { dbSiswa = dbSiswa.filter(x=>x.id != '${s.id}'); fetchGAS('hapusSiswa', {id: '${s.id}'}); renderTableAnggota(); })" class="text-red-500 bg-red-50 hover:bg-red-500 hover:text-white w-8 h-8 rounded-lg inline-flex items-center justify-center transition border border-red-100 shadow-sm"><i class="fas fa-trash text-xs"></i></button>
+                        <button onclick="bukaAdminConfirm('Hapus Siswa?', 'Data siswa ini akan dihapus permanen.', () => { dbSiswa = dbSiswa.filter(x=>String(x.id) !== '${s.id}'); fetchGAS('hapusSiswa', {id: '${s.id}'}); renderTableAnggota(); })" class="text-red-500 bg-red-50 hover:bg-red-500 hover:text-white w-8 h-8 rounded-lg inline-flex items-center justify-center transition border border-red-100 shadow-sm"><i class="fas fa-trash text-xs"></i></button>
                     </td>
                 </tr>`;
             });
@@ -3730,7 +4119,7 @@
                             </div>
                             <div class="flex gap-2">
                                 <button onclick="bukaModalPaket('${p.id}')" class="text-slate-300 hover:text-indigo-600 transition bg-white w-7 h-7 rounded-full border border-transparent hover:border-indigo-100 hover:bg-indigo-50 flex items-center justify-center"><i class="fas fa-edit text-xs"></i></button>
-                                <button onclick="bukaAdminConfirm('Hapus Paket?', 'Paket ujian dan seluruh soal di dalamnya akan terhapus.', () => { dbPaket = dbPaket.filter(x=>x.id!=='${p.id}'); dbSoal = dbSoal.filter(s=>s.paketId!=='${p.id}'); fetchGAS('hapusPaket', {id: '${p.id}'}); renderGridPaket(); })" class="text-slate-300 hover:text-red-500 transition bg-white w-7 h-7 rounded-full border border-transparent hover:border-red-100 hover:bg-red-50 flex items-center justify-center"><i class="fas fa-trash text-xs"></i></button>
+                                <button onclick="bukaAdminConfirm('Hapus Paket?', 'Paket ujian dan seluruh soal di dalamnya akan terhapus.', () => { dbPaket = dbPaket.filter(x=>String(x.id) !== '${p.id}'); dbSoal = dbSoal.filter(s=>String(s.paketId) !== '${p.id}'); fetchGAS('hapusPaket', {id: '${p.id}'}); renderGridPaket(); })" class="text-slate-300 hover:text-red-500 transition bg-white w-7 h-7 rounded-full border border-transparent hover:border-red-100 hover:bg-red-50 flex items-center justify-center"><i class="fas fa-trash text-xs"></i></button>
                             </div>
                         </div>
 
@@ -3765,32 +4154,83 @@
             const pKelas = p ? (Array.isArray(p.targetKelas) ? p.targetKelas : [p.targetKelas]) : [];
             const isAll = pKelas.includes('ALL') || pKelas.length === 0;
 
-            let classCheckboxes = `<label class="flex items-center gap-2.5 p-3 hover:bg-slate-100 rounded-lg cursor-pointer border-b border-slate-200 transition"><input type="checkbox" id="chkAllKelas" value="ALL" onchange="toggleAllKelas(this)" class="w-4 h-4 text-indigo-600 rounded accent-indigo-600 cursor-pointer" ${isAll ? 'checked' : ''}><span class="text-sm font-black text-slate-700">Pilih Semua Kelas</span></label>`;
+            // Mempercantik tampilan checklist target kelas
+            let classCheckboxes = `<label class="flex items-center gap-3 p-3 hover:bg-slate-100/80 rounded-xl cursor-pointer border-b border-slate-200 transition mb-1"><input type="checkbox" id="chkAllKelas" value="ALL" onchange="toggleAllKelas(this)" class="w-5 h-5 text-indigo-600 rounded accent-indigo-600 cursor-pointer" ${isAll ? 'checked' : ''}><span class="text-sm font-black text-indigo-700 tracking-tight">Pilih Semua Kelas</span></label>`;
             uniqueClasses.forEach(c => { 
                 const isChecked = isAll || pKelas.includes(c) ? 'checked' : '';
-                classCheckboxes += `<label class="flex items-center gap-2.5 p-3 hover:bg-slate-100 rounded-lg cursor-pointer transition"><input type="checkbox" name="chkKelasItem" value="${c}" class="w-4 h-4 text-indigo-600 rounded accent-indigo-600 cursor-pointer" onchange="checkIndividualKelas()" ${isChecked}><span class="text-sm font-bold text-slate-600">${c}</span></label>`; 
+                classCheckboxes += `<label class="flex items-center gap-3 p-2.5 hover:bg-white rounded-xl cursor-pointer transition border border-transparent hover:border-slate-200 hover:shadow-sm"><input type="checkbox" name="chkKelasItem" value="${c}" class="w-4 h-4 text-indigo-600 rounded accent-indigo-600 cursor-pointer" onchange="checkIndividualKelas()" ${isChecked}><span class="text-sm font-bold text-slate-600">${c}</span></label>`; 
             });
 
             const isGuru = sessionUser.role === 'admin';
             const valMapel = p ? p.mapel : (isGuru ? sessionUser.mapel : '');
+            
+            // Merapikan input Mata Pelajaran
             const mapelInput = isGuru 
-                ? `<input type="text" id="cpMapel" required readonly value="${valMapel}" class="w-full border border-slate-200 rounded-xl px-4 py-3.5 text-sm bg-slate-100 text-slate-500 font-bold outline-none cursor-not-allowed shadow-inner">` 
-                : `<input type="text" id="cpMapel" required value="${valMapel}" class="w-full border border-slate-200 rounded-xl px-4 py-3.5 text-sm bg-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 shadow-sm" placeholder="Contoh: Matematika">`;
+                ? `<input type="text" id="cpMapel" required readonly value="${valMapel}" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm bg-slate-100 text-slate-500 font-bold outline-none cursor-not-allowed shadow-inner">` 
+                : `<input type="text" id="cpMapel" required value="${valMapel}" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm bg-slate-50 outline-none focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 shadow-inner transition" placeholder="Contoh: Matematika">`;
 
             const now = new Date();
             const valWaktu = p ? toIsoStringLocal(new Date(p.waktuMulai)) : toIsoStringLocal(now);
             const valBatas = (p && p.batasWaktu) ? toIsoStringLocal(new Date(p.batasWaktu)) : toIsoStringLocal(new Date(now.getTime() + (2 * 60 * 60 * 1000)));
             const valMinWaktu = p ? (p.minWaktu !== undefined ? p.minWaktu : 30) : 30; // DEFAULT 30 Menit
 
+            // DESAIN UI BARU: Terbagi menjadi 3 panel kartu yang elegan
             document.getElementById('form-crud').innerHTML = `
                 <input type="hidden" id="cpId" value="${p ? p.id : ''}">
-                <div><label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nama Paket Ujian</label><input type="text" id="cpNama" required value="${p ? p.nama : ''}" class="w-full border border-slate-200 rounded-xl px-4 py-3.5 text-sm bg-white outline-none focus:border-indigo-500 shadow-sm" placeholder="Contoh: UTS Ganjil 2026"></div>
-                <div><label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Mata Pelajaran</label>${mapelInput}</div>
-                <div><label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Target Kelas (Pilih Minimal 1)</label><div class="bg-white border border-slate-200 rounded-xl p-2 max-h-40 overflow-y-auto shadow-inner flex flex-col gap-1">${classCheckboxes}</div></div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-                    <div><label class="block text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2">Min. Selesai (Menit)</label><input type="number" id="cpMinWaktu" required min="1" value="${valMinWaktu}" class="w-full border border-indigo-200 rounded-xl px-4 py-3.5 text-sm bg-indigo-50/50 outline-none focus:border-indigo-500 shadow-sm"></div>
-                    <div><label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Waktu Mulai</label><input type="datetime-local" id="cpWaktu" required value="${valWaktu}" class="w-full border border-slate-200 rounded-xl px-4 py-3.5 text-sm bg-white outline-none focus:border-indigo-500 shadow-sm"></div>
-                    <div><label class="block text-[10px] font-black text-red-500 uppercase tracking-widest mb-2">Tenggat Pengerjaan</label><input type="datetime-local" id="cpBatas" required value="${valBatas}" class="w-full border border-red-200 rounded-xl px-4 py-3.5 text-sm bg-red-50/50 outline-none focus:border-red-500 text-red-700 font-bold shadow-sm"></div>
+                <div class="space-y-5">
+                    
+                    <!-- Grup 1: Informasi Dasar -->
+                    <div class="p-5 bg-white border border-slate-200 rounded-[1.5rem] shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-1.5 h-full bg-indigo-500"></div>
+                        <h4 class="text-xs font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fas fa-info-circle text-indigo-500"></i> Info Ujian</h4>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nama Paket Ujian</label>
+                                <input type="text" id="cpNama" required value="${p ? p.nama : ''}" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm bg-slate-50 outline-none focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 shadow-inner transition" placeholder="Contoh: UTS Ganjil 2026">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Mata Pelajaran</label>
+                                ${mapelInput}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grup 2: Distribusi Kelas -->
+                    <div class="p-5 bg-white border border-slate-200 rounded-[1.5rem] shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
+                        <h4 class="text-xs font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fas fa-users text-blue-500"></i> Distribusi Kelas</h4>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Target Kelas (Pilih Minimal 1)</label>
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2 max-h-48 overflow-y-auto shadow-inner flex flex-col no-scrollbar">
+                            ${classCheckboxes}
+                        </div>
+                    </div>
+
+                    <!-- Grup 3: Pengaturan Waktu -->
+                    <div class="p-5 bg-white border border-slate-200 rounded-[1.5rem] shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-1.5 h-full bg-amber-500"></div>
+                        <h4 class="text-xs font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fas fa-clock text-amber-500"></i> Konfigurasi Waktu</h4>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Waktu Mulai</label>
+                                <input type="datetime-local" id="cpWaktu" required value="${valWaktu}" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm bg-slate-50 outline-none focus:bg-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 shadow-inner transition">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black text-red-500 uppercase tracking-widest mb-2">Tenggat Akhir Pengerjaan</label>
+                                <input type="datetime-local" id="cpBatas" required value="${valBatas}" class="w-full border border-red-200 rounded-xl px-4 py-3 text-sm bg-red-50/50 outline-none focus:bg-white focus:border-red-500 focus:ring-1 focus:ring-red-500 text-red-700 font-bold shadow-inner transition">
+                            </div>
+                        </div>
+                        
+                        <div class="pt-4 border-t border-slate-100">
+                            <label class="block text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1.5">Min. Waktu Tunggu / Selesai (Menit)</label>
+                            <p class="text-[10px] text-slate-500 mb-3 font-medium">Batas waktu sebelum siswa diizinkan menekan tombol Selesai.</p>
+                            <div class="relative">
+                                <input type="number" id="cpMinWaktu" required min="1" value="${valMinWaktu}" class="w-full border border-indigo-200 rounded-xl px-4 py-3 pl-11 text-sm bg-indigo-50/50 outline-none focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-bold text-indigo-700 shadow-inner transition">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-indigo-400"><i class="fas fa-stopwatch"></i></span>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             `;
             
@@ -3803,7 +4243,7 @@
 
                 const waktuMulai = document.getElementById('cpWaktu').value;
                 const batasWaktu = document.getElementById('cpBatas').value;
-                const minWaktu = parseInt(document.getElementById('cpMinWaktu').value) || 60; // Simpan nilai waktu minimal
+                const minWaktu = parseInt(document.getElementById('cpMinWaktu').value) || 60; 
 
                 const tMulai = new Date(waktuMulai).getTime();
                 const tBatas = new Date(batasWaktu).getTime();
@@ -3833,21 +4273,53 @@
             document.getElementById('modal-crud').classList.remove('hidden');
         }
 
+        // --- FITUR BARU: HAPUS SOAL PINTAR (MEMORI & DATABASE) ---
+        window.hapusButirSoal = function(idSoal) {
+            bukaAdminConfirm('Hapus Soal?', 'Soal ini akan dihapus permanen dari paket.', () => {
+                // 1. HAPUS DARI LAYAR DULUAN: 
+                // Paksa ID menjadi String (Teks) agar 100% cocok dan soal langsung hilang dari layar
+                dbSoal = dbSoal.filter(x => String(x.id) !== String(idSoal));
+                
+                // 2. REFRESH TAMPILAN LAYAR SEKETIKA
+                bukaListSoal(adminAktifPaketId);
+                
+                // 3. KIRIM PERINTAH HAPUS KE GOOGLE SHEETS
+                let idKirim = isNaN(Number(idSoal)) ? idSoal : Number(idSoal);
+                fetchGAS('hapusSoal', { id: idKirim }).then(res => {
+                    showToast("Soal berhasil dihapus!", "success");
+                }).catch(err => console.log(err));
+            });
+        };
+
         function bukaListSoal(paketId) {
             adminAktifPaketId = paketId;
-            document.getElementById('panel-paket-soal').classList.add('hidden'); document.getElementById('panel-list-soal').classList.remove('hidden');
+            document.getElementById('panel-paket-soal').classList.add('hidden'); 
+            document.getElementById('panel-list-soal').classList.remove('hidden');
             document.getElementById('judul-paket-aktif').innerText = dbPaket.find(x=>x.id===paketId).nama;
             
-            const list = document.getElementById('list-soal-aktif'); list.innerHTML = '';
+            const list = document.getElementById('list-soal-aktif'); 
+            list.innerHTML = '';
+            
             const soalPkt = dbSoal.filter(s=>s.paketId === paketId);
-            if(soalPkt.length===0) return list.innerHTML = '<div class="p-12 border border-dashed border-slate-300 rounded-[2rem] bg-slate-50 text-center text-slate-500 font-medium">Belum ada butir soal di paket ini.</div>';
+            if(soalPkt.length === 0) return list.innerHTML = '<div class="p-12 border border-dashed border-slate-300 rounded-[2rem] bg-slate-50 text-center text-slate-500 font-medium">Belum ada butir soal di paket ini.</div>';
             
             soalPkt.forEach((s, idx) => {
-                // Strip HTML tags for preview text
+                // Membersihkan tag HTML (seperti <p> atau <br>) agar yang tampil di daftar hanya teks murninya saja
                 let tempDiv = document.createElement("div");
                 tempDiv.innerHTML = s.teks;
                 let plainTeks = tempDiv.textContent || tempDiv.innerText || "";
                 let txt = plainTeks.length > 80 ? plainTeks.substring(0,80)+'...' : plainTeks;
+
+                // --- FITUR BARU: Thumbnail Cuplikan Gambar ---
+                // Mengecek apakah soal memiliki gambar, jika ada buatkan kotak gambar kecil yang bisa di-zoom
+                let imgThumbnail = (s.gambar && s.gambar.length > 10) 
+                    ? `<div class="mt-3 inline-block relative group cursor-zoom-in" onclick="bukaZoomGambar('${s.gambar}')">
+                           <div class="absolute inset-0 bg-[#0f172a]/0 group-hover:bg-[#0f172a]/20 transition-all duration-300 rounded-lg flex items-center justify-center z-10 border border-transparent group-hover:border-[#0f172a]/30">
+                               <i class="fas fa-search-plus text-white text-lg opacity-0 group-hover:opacity-100 drop-shadow-md transition-transform transform scale-50 group-hover:scale-100"></i>
+                           </div>
+                           <img src="${s.gambar}" class="h-20 w-auto rounded-lg border border-slate-200 p-1 bg-slate-50 shadow-sm relative z-0 object-contain">
+                       </div>` 
+                    : '';
 
                 list.innerHTML += `
                 <div class="bg-white border border-slate-200 rounded-[1.5rem] p-5 flex items-center justify-between gap-4 shadow-sm hover:shadow-md transition group">
@@ -3856,12 +4328,13 @@
                         <div class="flex-grow">
                             <span class="text-[9px] font-black uppercase bg-indigo-50 border border-indigo-100 text-indigo-600 px-2 py-0.5 rounded tracking-widest inline-block mb-1.5 shadow-sm">${s.jenis}</span>
                             <p class="text-sm font-medium text-slate-700 leading-relaxed">${txt}</p>
+                            ${imgThumbnail} <!-- Thumbnail Gambar Disuntikkan Di Sini -->
                         </div>
                     </div>
                     <div class="flex gap-2 flex-shrink-0 bg-slate-50 p-1.5 rounded-xl border border-slate-200 shadow-inner">
-                        <button onclick="previewSoalAdmin(${s.id})" class="w-9 h-9 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-100 flex items-center justify-center transition shadow-sm" title="Preview Tampilan"><i class="fas fa-eye text-xs"></i></button>
-                        <button onclick="editSoal(${s.id})" class="w-9 h-9 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-100 hover:text-indigo-700 flex items-center justify-center transition shadow-sm" title="Edit"><i class="fas fa-edit text-xs"></i></button>
-                        <button onclick="bukaAdminConfirm('Hapus Soal?', 'Soal ini akan dihapus permanen dari paket.', () => { dbSoal = dbSoal.filter(x=>x.id!==${s.id}); fetchGAS('hapusSoal', {id: ${s.id}}); bukaListSoal(adminAktifPaketId); })" class="w-9 h-9 bg-red-50 border border-red-100 text-red-500 rounded-lg hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition shadow-sm" title="Hapus"><i class="fas fa-trash text-xs"></i></button>
+                        <button onclick="previewSoalAdmin('${s.id}')" class="w-9 h-9 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-100 flex items-center justify-center transition shadow-sm" title="Lihat Tampilan Soal"><i class="fas fa-eye text-xs"></i></button>
+                        <button onclick="editSoal('${s.id}')" class="w-9 h-9 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-100 hover:text-indigo-700 flex items-center justify-center transition shadow-sm" title="Edit Soal"><i class="fas fa-edit text-xs"></i></button>
+                        <button onclick="hapusButirSoal('${s.id}')" class="w-9 h-9 bg-red-50 border border-red-100 text-red-500 rounded-lg hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition shadow-sm" title="Hapus Soal"><i class="fas fa-trash text-xs"></i></button>
                     </div>
                 </div>`;
             });
@@ -3881,9 +4354,32 @@
         function initQuill(id) {
             const el = document.getElementById(id);
             if (!el) return null;
-            // Deteksi jika elemen belum menjadi container Quill (karena baru dirender ulang via innerHTML)
+            
+            // Deteksi jika elemen belum menjadi container Quill
             if (!quillEditors[id] || !el.classList.contains('ql-container')) {
-                quillEditors[id] = new Quill(`#${id}`, quillOptions);
+                const q = new Quill(`#${id}`, quillOptions);
+                quillEditors[id] = q;
+
+                // --- FITUR BARU: AUTO DETECT ARABIC (Kecerdasan Hijaiah) ---
+                // Mengecek setiap kali guru mengetik atau mem-paste teks
+                q.on('text-change', function(delta, oldDelta, source) {
+                    if (source === 'user') { // Hanya jalan jika diketik/dipaste oleh guru
+                        const arabicRegex = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/; // Kamus kode huruf Arab
+                        const text = q.getText();
+                        const lines = text.split('\n'); // Pisahkan per baris
+                        let currentIndex = 0;
+                        
+                        lines.forEach(line => {
+                            // Jika sistem menemukan huruf Arab di baris tersebut
+                            if (arabicRegex.test(line)) {
+                                // Paksa teks menjadi RTL (Kanan-ke-kiri)
+                                q.formatLine(currentIndex, line.length, 'direction', 'rtl', 'api');
+                            }
+                            currentIndex += line.length + 1; // Maju ke baris berikutnya
+                        });
+                    }
+                });
+                // -----------------------------------------------------------
             }
             return quillEditors[id];
         }
@@ -4073,7 +4569,7 @@
         }
 
         function editSoal(id) {
-            const s = dbSoal.find(x=>x.id===id); bukaModalSoal();
+            const s = dbSoal.find(x => String(x.id) === String(id)); bukaModalSoal();
             document.getElementById('title-form-soal').innerHTML = '<i class="fas fa-edit mr-2 text-indigo-600"></i> Edit Soal';
             document.getElementById('edit-id-soal').value = s.id; document.getElementById('edit-jenis-soal').value = s.jenis; 
             
@@ -4239,8 +4735,21 @@
         // --- PREVIEW SOAL ---
         window.previewSoalData = null;
         function previewSoalAdmin(id) {
-            window.previewSoalData = dbSoal.find(x=>x.id===id);
+            window.previewSoalData = dbSoal.find(x => String(x.id) === String(id));
             document.getElementById('preview-label-jenis').textContent = window.previewSoalData.jenis;
+            
+            // --- FITUR BARU: Menyesuaikan Nomor Soal di Layar Preview ---
+            const soalSatuPaket = dbSoal.filter(s => s.paketId === window.previewSoalData.paketId);
+            
+            // PERBAIKAN: Paksa perbandingan menjadi String (Teks)
+            const urutanSoal = soalSatuPaket.findIndex(x => String(x.id) === String(id)) + 1;
+            
+            const elNomorPreview = document.getElementById('preview-soal-nomor');
+            if (elNomorPreview) {
+                elNomorPreview.textContent = urutanSoal;
+            }
+            // -----------------------------------------------------------
+            
             renderSoalSiswa('preview-content-area', true);
             document.getElementById('modal-preview-soal').classList.remove('hidden');
         }
