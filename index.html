@@ -1338,7 +1338,7 @@
                     dbSiswa = []; const siData = res.data.siswa; for(let i=1; i<siData.length; i++) dbSiswa.push({ id: siData[i][0], nama: siData[i][1], username: siData[i][2], password: String(siData[i][3]), kelas: siData[i][4], statusUjian: siData[i][5], cheatCount: siData[i][6], isBlocked: siData[i][7] });
                     
                     // Gunakan parseSafe pada target kelas
-                    dbPaket = []; const pData = res.data.paket; for(let i=1; i<pData.length; i++) dbPaket.push({ id: pData[i][0], nama: pData[i][1], mapel: pData[i][2], durasi: pData[i][3], waktuMulai: pData[i][4], batasWaktu: pData[i][5], targetKelas: parseSafe(pData[i][6], [pData[i][6]]), aktif: pData[i][7] });
+                    dbPaket = []; const pData = res.data.paket; for(let i=1; i<pData.length; i++) dbPaket.push({ id: pData[i][0], nama: pData[i][1], mapel: pData[i][2], durasi: pData[i][3], waktuMulai: pData[i][4], batasWaktu: pData[i][5], targetKelas: parseSafe(pData[i][6], [pData[i][6]]), aktif: pData[i][7], minWaktu: pData[i][8] });
                     
                     // --- SISTEM PEMBACA SOAL & AUTO-REPAIR TAHAP 4 ---
                     dbSoal = []; 
@@ -1378,7 +1378,7 @@
                 if(res.status === "success" && res.data) {
                     const parseSafe = (val, fallback) => { try { return JSON.parse(val); } catch(e) { return fallback; } };
                     
-                    dbPaket = []; const pData = res.data.paket; for(let i=1; i<pData.length; i++) dbPaket.push({ id: pData[i][0], nama: pData[i][1], mapel: pData[i][2], durasi: pData[i][3], waktuMulai: pData[i][4], batasWaktu: pData[i][5], targetKelas: parseSafe(pData[i][6], [pData[i][6]]), aktif: pData[i][7] });
+                    dbPaket = []; const pData = res.data.paket; for(let i=1; i<pData.length; i++) dbPaket.push({ id: pData[i][0], nama: pData[i][1], mapel: pData[i][2], durasi: pData[i][3], waktuMulai: pData[i][4], batasWaktu: pData[i][5], targetKelas: parseSafe(pData[i][6], [pData[i][6]]), aktif: pData[i][7], minWaktu: pData[i][8] });
                     dbHasil = []; const hData = res.data.hasil; for(let i=1; i<hData.length; i++) dbHasil.push({ wkt: hData[i][0], id: hData[i][1], siswaId: hData[i][2], nama: hData[i][3], kelas: hData[i][4], paketId: hData[i][5], mapel: hData[i][6], skor: hData[i][7], durasi: hData[i][8], detail: parseSafe(hData[i][9], {}), koreksiEsai: parseSafe(hData[i][10], {}) });
                     dbToken = []; const tData = res.data.token; for(let i=1; i<tData.length; i++) dbToken.push({ token: tData[i][0], paketId: tData[i][1], jenis: tData[i][2], isUsed: tData[i][3], usedBy: tData[i][4], usedTime: tData[i][5] });
                     
