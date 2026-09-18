@@ -218,12 +218,17 @@
                 display: block !important; text-align: center !important; font-size: 18px !important; font-weight: 900 !important; margin-bottom: 10px !important; border-bottom: 2px solid #0f172a !important; padding-bottom: 10px !important; color: #000 !important;
             }
         }
-        /* --- OPTIMASI TEKS ARAB (RTL) --- */
-        .ql-editor [dir="rtl"], [dir="rtl"] {
-            font-size: 1.8rem !important; 
-            line-height: 2.4 !important; 
+        /* --- OPTIMASI TEKS ARAB (RTL) OTOMATIS UKURAN HUGE --- */
+        [dir="rtl"],
+        [dir="rtl"] span,
+        [dir="rtl"] p,
+        .ql-editor [dir="rtl"],
+        #view-exam [dir="rtl"],
+        #modal-preview-soal [dir="rtl"] {
+            font-size: 48px !important; /* Ukuran setara atau lebih besar dari 'Huge' */
+            line-height: 2.2 !important; 
             font-family: "Amiri", "Traditional Arabic", "Scheherazade", serif !important;
-            text-align: right !important; /* Paksa nempel ke kanan otomatis */
+            text-align: right !important; 
         }
         
         /* Merapikan tampilan dropdown Size di Editor */
