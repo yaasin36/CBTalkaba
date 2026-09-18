@@ -1412,10 +1412,36 @@
                     const res = await fetchGAS("verifikasiLogin", { username: parsed.data.username, password: parsed.data.password });
                     
                     if(res.status === 'success' && res.data && res.data.role === 'siswa') {
-                        currentSiswa = res.data.user;
+                        let serverSiswa = res.data.user;
+
+                        // --- TAMBALAN BUG: PENCEGAHAN BYPASS BLOKIR ---
+                        // Mengatasi celah dimana siswa me-refresh layar sebelum Google Sheet selesai menyimpan data blokir.
+                        if (parsed.data && parsed.data.isBlocked) {
+                            // Selalu percayai status blokir lokal, kecuali jika Panitia mereset poin curang (Cheat Count) jadi 0 di Excel
+                            if (serverSiswa.cheatCount !== 0 && parsed.data.cheatCount >= serverSiswa.cheatCount) {
+                                serverSiswa.isBlocked = true;
+                                serverSiswa.cheatCount = Math.max(parsed.data.cheatCount, serverSiswa.cheatCount);
+                                // Dorong paksa kembali ke server agar Excel-nya update
+                                fetchGAS('simpanSiswa', serverSiswa);
+                            }
+                        }
+
+                        currentSiswa = serverSiswa;
                         sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
                         
                         if (currentSiswa.isBlocked) {
+                            // Update dinamis peringatan Panitia vs Pengawas
+                            const labelInstruksi = document.querySelector('#view-blocked form label');
+                            if (labelInstruksi) {
+                                if (currentSiswa.cheatCount >= 5) {
+                                    labelInstruksi.innerHTML = '<i class="fas fa-user-shield mr-1 text-red-500"></i> Peringatan Terakhir! Minta Token Buka Blokir ke PANITIA';
+                                    labelInstruksi.classList.replace('text-slate-400', 'text-red-500');
+                                } else {
+                                    labelInstruksi.innerHTML = '<i class="fas fa-key mr-1"></i> Minta Token Buka Blokir ke PENGAWAS';
+                                    labelInstruksi.classList.replace('text-red-500', 'text-slate-400');
+                                }
+                            }
+                            
                             document.getElementById('cheat-count-display').textContent = currentSiswa.cheatCount;
                             document.getElementById('view-loading').classList.add('hidden');
                             return switchView('view-blocked');
@@ -2312,8 +2338,17 @@
         }
 
         // --- FITUR ANTI KECURANGAN & AUTO SUBMIT ---
+        let waktuCheatTerakhir = 0; // Kunci gembok cooldown
+
         function triggerCheat() {
             if(!isExamActive || !currentSiswa) return;
+
+            // --- TAMBALAN BUG: ANTI DOUBLE-TRIGGER (COOLDOWN 2 DETIK) ---
+            const sekarang = Date.now();
+            if (sekarang - waktuCheatTerakhir < 2000) return; // Abaikan jika terjadi di detik yang sama
+            waktuCheatTerakhir = sekarang;
+            // -------------------------------------------------------------
+
             currentSiswa.cheatCount = (currentSiswa.cheatCount || 0) + 1;
             simpanStateUjian();
             
@@ -2334,10 +2369,9 @@
                 sessionStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
                 fetchGAS("simpanSiswa", currentSiswa);
                 
-                isExamActive = false; clearInterval(timerInterval); exitFullscreen(); 
+               isExamActive = false; exitFullscreen();
                 document.getElementById('cheat-count-display').textContent = currentSiswa.cheatCount; 
                 
-                // --- FITUR BARU: BEDA ARAHAN UNTUK PENGAWAS VS PANITIA ---
                 // Mengambil elemen label instruksi di atas input token
                 const labelInstruksi = document.querySelector('#view-blocked form label');
                 
@@ -2345,11 +2379,11 @@
                     if (currentSiswa.cheatCount === 5) {
                         // Jika sudah curang ke-5 (Peringatan Terakhir sebelum dikeluarkan)
                         labelInstruksi.innerHTML = '<i class="fas fa-user-shield mr-1 text-red-500"></i> Peringatan Terakhir! Minta Token Buka Blokir ke PANITIA';
-                        labelInstruksi.classList.replace('text-slate-400', 'text-red-500'); // Mengubah warna teks instruksi jadi merah
+                        labelInstruksi.classList.replace('text-slate-400', 'text-red-500'); 
                     } else {
                         // Jika curang ke-3 dan ke-4
                         labelInstruksi.innerHTML = '<i class="fas fa-key mr-1"></i> Minta Token Buka Blokir ke PENGAWAS';
-                        labelInstruksi.classList.replace('text-red-500', 'text-slate-400'); // Kembalikan ke warna standar
+                        labelInstruksi.classList.replace('text-red-500', 'text-slate-400');
                     }
                 }
                 
@@ -2380,7 +2414,7 @@
 
         function amankanDataSebelumKeluar() {
             // Cek apakah ujian aktif dan pastikan fungsi ini belum pernah dieksekusi sebelumnya
-            if (!isExamActive || !currentSiswa || !activePaket || isExamFinished || isSavingOnExit) return;
+            if (!currentSiswa || !activePaket || isExamFinished || isSavingOnExit) return;
             
             isSavingOnExit = true; // KUNCI GEMBOK: Mencegah eksekusi ganda jika browser mengirim 2 sinyal sekaligus
             
@@ -2640,6 +2674,26 @@
                     mulaiTimerSiswa(); 
                     switchView('view-exam');
                 } else {
+                    // --- PERBAIKAN: JIKA SISWA SEMPAT REFRESH HALAMAN SAAT TERBLOKIR ---
+                    let savedPaketId = null;
+                    for (let i = 0; i < sessionStorage.length; i++) {
+                        const key = sessionStorage.key(i);
+                        if (key && key.startsWith(`exam_state_${currentSiswa.id}_`)) {
+                            savedPaketId = key.split('_').pop(); break;
+                        }
+                    }
+
+                    if (savedPaketId) {
+                        const p = dbPaket.find(x => x.id === savedPaketId);
+                        if (p) {
+                            showToast("Blokir dibuka. Peringatan Terakhir!", "success");
+                            tempPaketToStart = p;
+                            mulaiUjian(false); // Langsung tembak masuk ke layar soal
+                            return;
+                        }
+                    }
+                    
+                    // Fallback jika tidak ada memori ujian yang tersimpan
                     showToast("Blokir dibuka. Silakan Lanjutkan ujian dari Beranda!", "success");
                     isExamActive = false;
                     renderDashboardSiswa();
