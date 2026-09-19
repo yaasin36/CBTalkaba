@@ -4486,7 +4486,7 @@
                             </div>
                             <div class="flex gap-2">
                                 <button onclick="bukaModalPaket('${p.id}')" class="text-slate-300 hover:text-indigo-600 transition bg-white w-7 h-7 rounded-full border border-transparent hover:border-indigo-100 hover:bg-indigo-50 flex items-center justify-center"><i class="fas fa-edit text-xs"></i></button>
-                                <button onclick="bukaAdminConfirm('Hapus Paket?', 'Paket ujian dan seluruh soal di dalamnya akan terhapus.', () => { dbPaket = dbPaket.filter(x=>String(x.id) !== '${p.id}'); dbSoal = dbSoal.filter(s=>String(s.paketId) !== '${p.id}'); fetchGAS('hapusPaket', {id: '${p.id}'}); renderGridPaket(); })" class="text-slate-300 hover:text-red-500 transition bg-white w-7 h-7 rounded-full border border-transparent hover:border-red-100 hover:bg-red-50 flex items-center justify-center"><i class="fas fa-trash text-xs"></i></button>
+                               <button onclick="bukaAdminConfirm('Hapus Paket?', 'Paket ujian, seluruh soal, dan rekap nilai siswa di dalamnya akan terhapus permanen.', () => { dbPaket = dbPaket.filter(x=>String(x.id) !== '${p.id}'); dbSoal = dbSoal.filter(s=>String(s.paketId) !== '${p.id}'); dbHasil = dbHasil.filter(h=>String(h.paketId) !== '${p.id}'); fetchGAS('hapusPaket', {id: '${p.id}'}); renderGridPaket(); })" class="text-slate-300 hover:text-red-500 transition bg-white w-7 h-7 rounded-full border border-transparent hover:border-red-100 hover:bg-red-50 flex items-center justify-center"><i class="fas fa-trash text-xs"></i></button>
                             </div>
                         </div>
 
