@@ -2070,6 +2070,11 @@
                 let sJodoh = shuffleArray(rawSoal.filter(s => s.jenis === 'JODOH'));
                 soalSiswa = [...sPG, ...sEsai, ...sBS, ...sJodoh];
                 jawabanSiswa = {}; statusRagu = {}; currentIndex = 0; 
+                
+                // RESET PELANGGARAN KARENA INI PAKET UJIAN BARU
+                currentSiswa.cheatCount = 0;
+                localStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
+                fetchGAS('simpanSiswa', currentSiswa);
             }
 
           document.getElementById('header-mapel').textContent = activePaket.nama;
@@ -2457,9 +2462,13 @@
 
             simpanStateUjian();
 
-            // REVISI: Tambahkan 'JODOH' agar layar langsung update efek abu-abu saat dipilih
-            if(type === 'PG' || type === 'JODOH') renderSoalSiswa('soal-content-area', false); 
-            else updatePaletteStyleSiswa(); 
+            // REVISI BARU: Tambahkan 'PGK' dan 'BS' agar visual layar merespon instan tanpa perlu pindah nomor
+            if(type === 'PG' || type === 'PGK' || type === 'BS' || type === 'JODOH') {
+                renderSoalSiswa('soal-content-area', false); 
+            } else {
+                // Khusus ESAI tidak di-render ulang agar kursor siswa saat mengetik tidak hilang
+                updatePaletteStyleSiswa(); 
+            }
         }
 
         function toggleRagu() { statusRagu[currentIndex] = document.getElementById('checkbox-ragu').checked; simpanStateUjian(); updatePaletteStyleSiswa(); }
@@ -2787,6 +2796,12 @@
                 // JIKA SUKSES TERSIMPAN DI GOOGLE SHEETS
                 if (res && res.status === "success") {
                     currentSiswa.statusUjian = true; 
+                    
+                    // BERSIHKAN DOSA CURANG SETELAH UJIAN DIKUMPULKAN DENGAN SUKSES
+                    currentSiswa.cheatCount = 0;
+                    currentSiswa.isBlocked = false;
+                    localStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
+                    
                     fetchGAS("simpanSiswa", currentSiswa);
                     dbHasil.push(finalData); 
                     
