@@ -2063,18 +2063,14 @@
           } 
 
           if (!isStateRestored) {
-              const shuffleArray = (array) => { let arr = [...array]; for (let i=arr.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1)); [arr[i], arr[j]]=[arr[j], arr[i]]; } return arr; };
-              let sPG = shuffleArray(rawSoal.filter(s => s.jenis === 'PG' || s.jenis === 'PGK'));
-              let sEsai = shuffleArray(rawSoal.filter(s => s.jenis === 'ESAI'));
-              let sBS = shuffleArray(rawSoal.filter(s => s.jenis === 'BS'));
-              let sJodoh = shuffleArray(rawSoal.filter(s => s.jenis === 'JODOH'));
-              soalSiswa = [...sPG, ...sEsai, ...sBS, ...sJodoh];
-              jawabanSiswa = {}; statusRagu = {}; currentIndex = 0; 
-
-              currentSiswa.cheatCount = 0;
-              localStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
-              fetchGAS('simpanSiswa', currentSiswa);
-          }
+                const shuffleArray = (array) => { let arr = [...array]; for (let i=arr.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1)); [arr[i], arr[j]]=[arr[j], arr[i]]; } return arr; };
+                let sPG = shuffleArray(rawSoal.filter(s => s.jenis === 'PG' || s.jenis === 'PGK'));
+                let sEsai = shuffleArray(rawSoal.filter(s => s.jenis === 'ESAI'));
+                let sBS = shuffleArray(rawSoal.filter(s => s.jenis === 'BS'));
+                let sJodoh = shuffleArray(rawSoal.filter(s => s.jenis === 'JODOH'));
+                soalSiswa = [...sPG, ...sEsai, ...sBS, ...sJodoh];
+                jawabanSiswa = {}; statusRagu = {}; currentIndex = 0; 
+            }
 
           document.getElementById('header-mapel').textContent = activePaket.nama;
           document.getElementById('header-nama').textContent = `${currentSiswa.nama} - ${currentSiswa.kelas}`;
@@ -2515,16 +2511,15 @@
         }
 
         // --- FITUR ANTI KECURANGAN & AUTO SUBMIT ---
-        let waktuCheatTerakhir = 0; // Kunci gembok cooldown
+        let waktuCheatTerakhir = 0; 
 
         function triggerCheat() {
             if(!isExamActive || !currentSiswa) return;
 
-            // --- TAMBALAN BUG: ANTI DOUBLE-TRIGGER (COOLDOWN 2 DETIK) ---
+            // Turunkan Jeda/Cooldown menjadi hanya 0.8 detik agar lebih agresif menangkap gerakan cepat
             const sekarang = Date.now();
-            if (sekarang - waktuCheatTerakhir < 2000) return; // Abaikan jika terjadi di detik yang sama
+            if (sekarang - waktuCheatTerakhir < 800) return; 
             waktuCheatTerakhir = sekarang;
-            // -------------------------------------------------------------
 
             currentSiswa.cheatCount = (currentSiswa.cheatCount || 0) + 1;
             simpanStateUjian();
@@ -2537,7 +2532,7 @@
             if (currentSiswa.cheatCount >= 6) {
                 // Kecurangan ke-6: Ujian otomatis selesai paksa
                 kirimLogSistem("Pelanggaran Maksimal (Selesai Paksa)", `Ujian dihentikan paksa karena 6x pelanggaran pada paket ${activePaket.nama}`); 
-                showToast("Pelanggaran maksimal! Ujian otomatis diakhiri karena sudah melanggar 6 kali.", "error");
+                showToast("Pelanggaran maksimal! Ujian otomatis diakhiri.", "error");
                 akhiriUjian();
             } else if (currentSiswa.cheatCount >= 3 && currentSiswa.cheatCount <= 5) {
                 // Kecurangan ke-3, 4, dan 5: Terblokir merah dan butuh token
@@ -2550,16 +2545,12 @@
                 isExamActive = false; exitFullscreen();
                 document.getElementById('cheat-count-display').textContent = currentSiswa.cheatCount; 
                 
-                // Mengambil elemen label instruksi di atas input token
                 const labelInstruksi = document.querySelector('#view-blocked form label');
-                
                 if (labelInstruksi) {
                     if (currentSiswa.cheatCount === 5) {
-                        // Jika sudah curang ke-5 (Peringatan Terakhir sebelum dikeluarkan)
                         labelInstruksi.innerHTML = '<i class="fas fa-user-shield mr-1 text-red-500"></i> Peringatan Terakhir! Minta Token Buka Blokir ke PANITIA';
                         labelInstruksi.classList.replace('text-slate-400', 'text-red-500'); 
                     } else {
-                        // Jika curang ke-3 dan ke-4
                         labelInstruksi.innerHTML = '<i class="fas fa-key mr-1"></i> Minta Token Buka Blokir ke PENGAWAS';
                         labelInstruksi.classList.replace('text-red-500', 'text-slate-400');
                     }
@@ -2567,28 +2558,45 @@
                 
                 switchView('view-blocked');
             } else { 
-                // Kecurangan 1 dan 2: Hanya peringatan
                 kirimLogSistem("Peringatan Curang", `Peringatan ke-${currentSiswa.cheatCount} (Pindah Tab / Keluar Layar)`); 
                 showToast(`Peringatan Kecurangan (${currentSiswa.cheatCount}/2)! Sistem merekam aktivitas mencurigakan.`, "error"); 
             }
         }
 
-        // HIDUPKAN SENSOR PINDAH TAB (blur & visibilitychange)
+        // Lapis 1: Sensor Layar dan Tab
         window.addEventListener("blur", () => { if (isExamActive) triggerCheat(); });
         document.addEventListener("visibilitychange", () => { if (document.hidden && isExamActive) triggerCheat(); });
+        window.addEventListener("pagehide", () => { if (isExamActive) triggerCheat(); });
 
+        // Lapis 2: Sensor Layar Penuh (Khusus Android & Windows)
         document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && isExamActive) triggerCheat(); });
         document.addEventListener("webkitfullscreenchange", () => { if (!document.webkitFullscreenElement && isExamActive) triggerCheat(); });
         
+        // Lapis 3: Sensor Mouse Keluar Jendela (Khusus Laptop/PC)
+        document.addEventListener("mouseleave", (e) => {
+            if (isExamActive && e.clientY <= 0) { 
+                triggerCheat(); 
+            }
+        });
+
+        // Lapis 4: Blokir Pintasan Keyboard (Ctrl+C, Ctrl+V, Windows Key, F12, dll)
+        document.addEventListener("keydown", (e) => {
+            if(isExamActive) {
+                // Mencegah Inspect Element, Print, Copy, Paste, Save via Keyboard
+                if(e.key === 'F12' || (e.ctrlKey && ['c','v','p','s','u','i','j'].includes(e.key.toLowerCase()))) {
+                    e.preventDefault();
+                    triggerCheat();
+                }
+            }
+        });
+
+        // Lapis 5: Blokir Klik Kanan, Drag & Drop Teks
         document.addEventListener('contextmenu', event => { if(isExamActive) { event.preventDefault(); triggerCheat(); } });
         ['copy', 'cut', 'paste', 'drop'].forEach(evt => { 
             document.addEventListener(evt, e => { 
                 if(isExamActive) { 
-                    // Izinkan drag/drop dan pengetikan biasa pada textarea esai
-                    if (evt === 'copy' || evt === 'paste') {
-                        e.preventDefault(); 
-                        triggerCheat(); 
-                    }
+                    e.preventDefault(); 
+                    triggerCheat(); 
                 } 
             }); 
         });
