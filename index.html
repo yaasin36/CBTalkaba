@@ -2039,86 +2039,116 @@
             // =======================================================
 
             const savedStateStr = localStorage.getItem(`exam_state_${currentSiswa.id}_${activePaket.id}`);
-            let savedState = null;
-            if (savedStateStr) {
-                try { savedState = JSON.parse(savedStateStr); } catch (e) { console.error(e); }
-            }
+          let savedState = null;
+          if (savedStateStr) {
+              try { savedState = JSON.parse(savedStateStr); } catch (e) { console.error(e); }
+          }
 
-            if (savedState && savedState.soalSiswa && savedState.soalSiswa.length > 0) {
-                soalSiswa = savedState.soalSiswa;
-                jawabanSiswa = savedState.jawabanSiswa || {};
-                statusRagu = savedState.statusRagu || {};
-                currentIndex = savedState.currentIndex || 0;
-            } else {
-                const shuffleArray = (array) => { let arr = [...array]; for (let i=arr.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1)); [arr[i], arr[j]]=[arr[j], arr[i]]; } return arr; };
-                let sPG = shuffleArray(rawSoal.filter(s => s.jenis === 'PG' || s.jenis === 'PGK'));
-                let sEsai = shuffleArray(rawSoal.filter(s => s.jenis === 'ESAI'));
-                let sBS = shuffleArray(rawSoal.filter(s => s.jenis === 'BS'));
-                let sJodoh = shuffleArray(rawSoal.filter(s => s.jenis === 'JODOH'));
-                soalSiswa = [...sPG, ...sEsai, ...sBS, ...sJodoh];
-                jawabanSiswa = {}; statusRagu = {}; currentIndex = 0; 
+          let isStateRestored = false;
 
-                currentSiswa.cheatCount = 0;
-                localStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
-                fetchGAS('simpanSiswa', currentSiswa);
-            }
+          if (savedState) {
+              if (savedState.soalSiswaIds && savedState.soalSiswaIds.length > 0) {
+                  soalSiswa = savedState.soalSiswaIds.map(id => rawSoal.find(s => String(s.id) === String(id))).filter(Boolean);
+                  isStateRestored = soalSiswa.length > 0;
+              } else if (savedState.soalSiswa && savedState.soalSiswa.length > 0) {
+                  soalSiswa = savedState.soalSiswa;
+                  isStateRestored = true;
+              }
 
-            document.getElementById('header-mapel').textContent = activePaket.nama;
-            document.getElementById('header-nama').textContent = `${currentSiswa.nama} - ${currentSiswa.kelas}`;
-            
-            const nowTime = new Date();
-            const endTime = new Date(activePaket.batasWaktu);
-            let sisaDetik = Math.floor((endTime - nowTime) / 1000);
-            
-            if (isLate) {
-                waktuTersisa = activePaket.durasi * 60; 
-            } else {
-                waktuTersisa = sisaDetik < (activePaket.durasi * 60) ? sisaDetik : activePaket.durasi * 60; 
-                if (waktuTersisa <= 0) waktuTersisa = 10; 
-            }
+              if (isStateRestored) {
+                  jawabanSiswa = savedState.jawabanSiswa || {};
+                  statusRagu = savedState.statusRagu || {};
+                  currentIndex = savedState.currentIndex || 0;
+              }
+          } 
 
-            if (savedState && savedState.waktuTersisa && savedState.waktuTersisa > 0) {
-                 if(savedState.waktuTersisa < waktuTersisa){
-                     waktuTersisa = savedState.waktuTersisa;
-                 }
-            }
-            
-            if (savedState && savedState.waktuMulaiUjian) {
-                waktuMulaiUjian = new Date(savedState.waktuMulaiUjian);
-            } else {
-                waktuMulaiUjian = nowTime;
-            }
-            
-            isExamFinished = false; 
-            
-            setTimeout(() => {
-                isExamActive = true; 
-                document.getElementById('view-exam').classList.add('exam-active-mode');
-                renderPaletteSiswa(); renderSoalSiswa('soal-content-area', false); mulaiTimerSiswa();
-                simpanStateUjian();
-                
-                if(!savedState) {
-                    kirimLogSistem("Mulai Ujian", `Siswa mulai mengerjakan paket: ${activePaket.nama}`); 
-                } else {
-                    kirimLogSistem("Melanjutkan Ujian", `Siswa melanjutkan mengerjakan paket: ${activePaket.nama}`); 
-                }
-                
-                document.getElementById('view-loading').classList.add('hidden'); // Sembunyikan loading
-                switchView('view-exam');
-            }, 500);
+          if (!isStateRestored) {
+              const shuffleArray = (array) => { let arr = [...array]; for (let i=arr.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1)); [arr[i], arr[j]]=[arr[j], arr[i]]; } return arr; };
+              let sPG = shuffleArray(rawSoal.filter(s => s.jenis === 'PG' || s.jenis === 'PGK'));
+              let sEsai = shuffleArray(rawSoal.filter(s => s.jenis === 'ESAI'));
+              let sBS = shuffleArray(rawSoal.filter(s => s.jenis === 'BS'));
+              let sJodoh = shuffleArray(rawSoal.filter(s => s.jenis === 'JODOH'));
+              soalSiswa = [...sPG, ...sEsai, ...sBS, ...sJodoh];
+              jawabanSiswa = {}; statusRagu = {}; currentIndex = 0; 
+
+              currentSiswa.cheatCount = 0;
+              localStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
+              fetchGAS('simpanSiswa', currentSiswa);
+          }
+
+          document.getElementById('header-mapel').textContent = activePaket.nama;
+          document.getElementById('header-nama').textContent = `${currentSiswa.nama} - ${currentSiswa.kelas}`;
+
+          const nowTime = new Date();
+          let batasString = String(activePaket.batasWaktu).replace(" ", "T");
+          const endTime = new Date(batasString);
+          let sisaDetik = Math.floor((endTime - nowTime) / 1000);
+
+          if (isLate) {
+              waktuTersisa = activePaket.durasi * 60; 
+          } else {
+              if(isNaN(sisaDetik)) sisaDetik = activePaket.durasi * 60;
+              waktuTersisa = sisaDetik < (activePaket.durasi * 60) ? sisaDetik : activePaket.durasi * 60; 
+              if (waktuTersisa <= 0) waktuTersisa = 10; 
+          }
+
+          if (savedState && savedState.waktuTersisa && savedState.waktuTersisa > 0) {
+               if(savedState.waktuTersisa < waktuTersisa){
+                   waktuTersisa = savedState.waktuTersisa;
+               }
+          }
+
+          if (savedState && savedState.waktuMulaiUjian) {
+              waktuMulaiUjian = new Date(savedState.waktuMulaiUjian);
+          } else {
+              waktuMulaiUjian = nowTime;
+          }
+
+          isExamFinished = false; 
+
+          setTimeout(() => {
+              try {
+                  isExamActive = true; 
+                  document.getElementById('view-exam').classList.add('exam-active-mode');
+                  renderPaletteSiswa(); renderSoalSiswa('soal-content-area', false); mulaiTimerSiswa();
+                  simpanStateUjian();
+
+                  if(!isStateRestored) {
+                      kirimLogSistem("Mulai Ujian", `Siswa mulai mengerjakan paket: ${activePaket.nama}`); 
+                  } else {
+                      kirimLogSistem("Melanjutkan Ujian", `Siswa melanjutkan mengerjakan paket: ${activePaket.nama}`); 
+                  }
+
+                  document.getElementById('view-loading').classList.add('hidden'); 
+                  switchView('view-exam');
+              } catch (err) {
+                  console.error("Terjadi error sistematik saat render UI:", err);
+                  document.getElementById('view-loading').classList.add('hidden');
+                  showToast("Gagal memuat sistem ujian di perangkat ini, silakan Refresh/Muat Ulang Layar.", "error");
+              }
+          }, 500);
         }
 
         function simpanStateUjian() {
             if (!isExamActive || !currentSiswa || !activePaket) return;
+
+            // PENTING UNTUK iOS: Hanya simpan ID Soalnya saja agar sangat ringan (mencegah QuotaExceededError di iPhone)
+            const urutanIdSoal = soalSiswa.map(s => s.id);
+
             const state = {
-                soalSiswa: soalSiswa,
+                soalSiswaIds: urutanIdSoal, 
                 jawabanSiswa: jawabanSiswa,
                 statusRagu: statusRagu,
                 currentIndex: currentIndex,
                 waktuTersisa: waktuTersisa,
-                waktuMulaiUjian: waktuMulaiUjian ? waktuMulaiUjian.getTime() : new Date().getTime() // Rekam waktu start asli
+                waktuMulaiUjian: waktuMulaiUjian ? waktuMulaiUjian.getTime() : new Date().getTime() 
             };
-            localStorage.setItem(`exam_state_${currentSiswa.id}_${activePaket.id}`, JSON.stringify(state));
+
+            try {
+                localStorage.setItem(`exam_state_${currentSiswa.id}_${activePaket.id}`, JSON.stringify(state));
+            } catch (e) {
+                console.warn("Gagal menyimpan state memori (Penyimpanan Penuh):", e);
+            }
         }
 
         // --- LOGIKA ZOOM GAMBAR (LIGHTBOX) ---
