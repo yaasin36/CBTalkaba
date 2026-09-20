@@ -2525,7 +2525,7 @@
         function triggerCheat() {
             if(!isExamActive || !currentSiswa) return;
 
-            // Turunkan Jeda/Cooldown menjadi hanya 0.8 detik agar lebih agresif menangkap gerakan cepat
+            // Turunkan Jeda/Cooldown menjadi hanya 0.8 detik
             const sekarang = Date.now();
             if (sekarang - waktuCheatTerakhir < 800) return; 
             waktuCheatTerakhir = sekarang;
@@ -2533,18 +2533,15 @@
             currentSiswa.cheatCount = (currentSiswa.cheatCount || 0) + 1;
             simpanStateUjian();
             
-            // Selalu simpan peringatan curang ke memori session dan database
             localStorage.setItem('cbt_user', JSON.stringify({type:'siswa', data:currentSiswa}));
             fetchGAS("simpanSiswa", currentSiswa);
 
             // LOGIKA ATURAN AWAL: 1-2 Peringatan, 3-5 Blokir Minta Token, 6 Selesai Paksa
             if (currentSiswa.cheatCount >= 6) {
-                // Kecurangan ke-6: Ujian otomatis selesai paksa
                 kirimLogSistem("Pelanggaran Maksimal (Selesai Paksa)", `Ujian dihentikan paksa karena 6x pelanggaran pada paket ${activePaket.nama}`); 
                 showToast("Pelanggaran maksimal! Ujian otomatis diakhiri.", "error");
                 akhiriUjian();
             } else if (currentSiswa.cheatCount >= 3 && currentSiswa.cheatCount <= 5) {
-                // Kecurangan ke-3, 4, dan 5: Terblokir merah dan butuh token
                 kirimLogSistem("Pelanggaran Berat (Blokir)", `Siswa terblokir setelah ${currentSiswa.cheatCount}x pelanggaran pada ujian ${activePaket.nama}`); 
                 
                 currentSiswa.isBlocked = true; 
@@ -2564,7 +2561,6 @@
                         labelInstruksi.classList.replace('text-red-500', 'text-slate-400');
                     }
                 }
-                
                 switchView('view-blocked');
             } else { 
                 kirimLogSistem("Peringatan Curang", `Peringatan ke-${currentSiswa.cheatCount} (Pindah Tab / Keluar Layar)`); 
