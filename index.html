@@ -1962,6 +1962,9 @@
 
         async function mulaiUjian(isLate) {
             if(!currentSiswa || !tempPaketToStart) return;
+            
+            enterFullscreen(); // FIX ANDROID: Aktifkan layar penuh tepat saat tombol diklik
+
             if(currentSiswa.isBlocked) { document.getElementById('cheat-count-display').textContent = currentSiswa.cheatCount; tutupInfoUjian(); return switchView('view-blocked'); }
             
             let tokenData = null;
@@ -2067,7 +2070,7 @@
                 waktuMulaiUjian = nowTime;
             }
             
-            isExamFinished = false; enterFullscreen(); 
+            isExamFinished = false; 
             
             setTimeout(() => {
                 isExamActive = true; 
@@ -2716,6 +2719,9 @@
 
         async function bukaBlokir(e) {
             e.preventDefault(); 
+            
+            enterFullscreen(); // FIX ANDROID: Aktifkan layar penuh tepat saat tombol diklik
+
             const inputToken = document.getElementById('inputTokenBlokir').value.trim().toUpperCase();
             if (!inputToken) return;
 
@@ -2755,7 +2761,6 @@
                 
                 if (activePaket) {
                     showToast("Blokir dibuka. Peringatan Terakhir!", "success");
-                    enterFullscreen(); 
                     isExamActive = true; 
                     document.getElementById('view-exam').classList.add('exam-active-mode'); 
                     mulaiTimerSiswa(); 
