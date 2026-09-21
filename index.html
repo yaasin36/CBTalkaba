@@ -16,7 +16,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <!-- Tambahkan ini untuk Export Excel -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/1.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <!-- Quill Editor -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
@@ -2660,15 +2660,26 @@
         });
 
         function bukaModalSelesai() { 
-            if (!activePaket || !waktuMulaiUjian) return;
+            if (!activePaket) return;
             
-            const elapsedMinutes = Math.floor((new Date() - waktuMulaiUjian) / 60000);
-            const minMenit = activePaket.minWaktu !== undefined && activePaket.minWaktu !== "" ? parseInt(activePaket.minWaktu) : 30; // 30 Menit Default
+            const now = new Date();
             
-            // Logika Pencegahan Kumpul Awal
-            if (elapsedMinutes < minMenit) {
-                const sisaTunggu = minMenit - elapsedMinutes;
-                showToast(`Waktu minimum pengerjaan adalah ${minMenit} menit. Anda belum boleh keluar. Tunggu ${sisaTunggu} menit lagi!`, "error");
+            // Mengambil jam asli jadwal ujian dimulai (Misal: 07.00)
+            const jadwalMulaiPaket = new Date(activePaket.waktuMulai); 
+            const minMenit = activePaket.minWaktu !== undefined && activePaket.minWaktu !== "" ? parseInt(activePaket.minWaktu) : 30;
+            
+            // ATURAN MUTLAK: Waktu Boleh Selesai = Jadwal Mulai Ujian + Min. Pengerjaan
+            const waktuBolehSelesai = new Date(jadwalMulaiPaket.getTime() + (minMenit * 60000));
+            
+            // Jika jam HP siswa saat ini masih KURANG DARI jam boleh selesai
+            if (now < waktuBolehSelesai) {
+                const sisaTungguDetik = Math.floor((waktuBolehSelesai - now) / 1000);
+                const sisaMenit = Math.ceil(sisaTungguDetik / 60);
+                
+                // Format jam untuk notifikasi (Contoh: 08.00 WIB)
+                const jamBuka = waktuBolehSelesai.toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace(':', '.') + ' WIB';
+                
+                showToast(`Tombol Selesai terbuka serentak pukul ${jamBuka} (Tunggu ${sisaMenit} mnt)`, "error");
                 return;
             }
 
@@ -3490,99 +3501,102 @@
             }, 1000);
         }
         
-        // --- FUNGSI EXPORT EXCEL ---
+        // --- FUNGSI EXPORT EXCEL HASIL UJIAN ---
         function exportExcelHasil() {
+            if (typeof XLSX === 'undefined') return showToast("Gagal memuat sistem Excel. Pastikan koneksi internet stabil.", "error");
             if (!tempPaketHasil || !tempKelasHasil) return showToast("Tidak ada data paket aktif", "error");
 
             showToast("Menyiapkan file Excel...", "info");
             
-            const paketId = tempPaketHasil.id;
-            const soalPkt = dbSoal.filter(soal => soal.paketId === paketId);
-            const siswaKelas = dbSiswa.filter(s => s.kelas === tempKelasHasil).sort((a,b) => a.nama.localeCompare(b.nama));
+            try {
+                const paketId = tempPaketHasil.id;
+                const soalPkt = dbSoal.filter(soal => soal.paketId === paketId);
+                const siswaKelas = dbSiswa.filter(s => s.kelas === tempKelasHasil).sort((a,b) => a.nama.localeCompare(b.nama));
 
-            // Siapkan Array kosong untuk menampung baris-baris Excel
-            const excelData = [];
-            
-            siswaKelas.forEach((s, idx) => {
-                const hsl = dbHasil.find(h => String(h.siswaId) === String(s.id) && h.paketId === paketId);
-                const isLate = dbToken.find(t => t.paketId === paketId && t.jenis === 'Susulan' && t.isUsed && t.usedBy === s.nama);
+                const excelData = [];
                 
-                let status = 'Belum Ujian';
-                let pPG = 0, pPGK = 0, pBS = 0, pMJ = 0, totalRaw = 0, skorAkhir = 0;
+                siswaKelas.forEach((s, idx) => {
+                    const hsl = dbHasil.find(h => String(h.siswaId) === String(s.id) && String(h.paketId) === String(paketId));
+                    const isLate = dbToken.find(t => String(t.paketId) === String(paketId) && t.jenis === 'Susulan' && t.isUsed && t.usedBy === s.nama);
+                    
+                    let status = 'Belum Ujian';
+                    let pPG = 0, pPGK = 0, pBS = 0, pMJ = 0, totalRaw = 0, skorAkhir = 0;
 
-                if (hsl) {
-                    status = 'Selesai';
-                    soalPkt.forEach(soal => {
-                        let myPoin = 0;
-                        const ans = hsl.detail[soal.id];
-                        if (ans !== undefined && ans !== null) {
-                            if (soal.jenis === 'PG' && ans === soal.jawabanBenar[0]) myPoin = 2;
-                            else if (soal.jenis === 'PGK' && Array.isArray(ans) && Array.isArray(soal.jawabanBenar)) {
-                                const isAllCorrect = ans.length === soal.jawabanBenar.length && ans.every(val => soal.jawabanBenar.includes(val));
-                                myPoin = isAllCorrect ? 3 : 0;
-                            } else if (soal.jenis === 'BS' && typeof ans === 'object') {
-                                (soal.pernyataan || []).forEach((p, i) => { if (ans[i] === p.kunci) myPoin += 1; });
-                            } else if (soal.jenis === 'JODOH' && typeof ans === 'object') {
-                                const keys = Object.keys(soal.kunciJodoh || {});
-                                keys.forEach(k => { if (ans[k] === soal.kunciJodoh[k]) myPoin += 1; });
+                    if (hsl) {
+                        status = 'Selesai';
+                        soalPkt.forEach(soal => {
+                            let myPoin = 0;
+                            const ans = hsl.detail[soal.id];
+                            
+                            if (ans !== undefined && ans !== null) {
+                                // SAFETY CHECK: soal.jawabanBenar diberi pengaman
+                                if (soal.jenis === 'PG' && soal.jawabanBenar && ans === soal.jawabanBenar[0]) {
+                                    myPoin = 2;
+                                } else if (soal.jenis === 'PGK' && Array.isArray(ans) && Array.isArray(soal.jawabanBenar)) {
+                                    const isAllCorrect = ans.length === soal.jawabanBenar.length && ans.every(val => soal.jawabanBenar.includes(val));
+                                    myPoin = isAllCorrect ? 3 : 0;
+                                } else if (soal.jenis === 'BS' && typeof ans === 'object') {
+                                    (soal.pernyataan || []).forEach((p, i) => { if (ans[i] === p.kunci) myPoin += 1; });
+                                } else if (soal.jenis === 'JODOH' && typeof ans === 'object') {
+                                    const keys = Object.keys(soal.kunciJodoh || {});
+                                    keys.forEach(k => { if (ans[k] === soal.kunciJodoh[k]) myPoin += 1; });
+                                }
                             }
-                        }
-                        if (soal.jenis === 'ESAI' && hsl.koreksiEsai && hsl.koreksiEsai[soal.id] !== undefined) {
-                            myPoin = hsl.koreksiEsai[soal.id];
-                        }
+                            if (soal.jenis === 'ESAI' && hsl.koreksiEsai && hsl.koreksiEsai[soal.id] !== undefined) {
+                                myPoin = hsl.koreksiEsai[soal.id];
+                            }
 
-                        if (soal.jenis === 'PG') pPG += myPoin;
-                        else if (soal.jenis === 'PGK') pPGK += myPoin;
-                        else if (soal.jenis === 'BS') pBS += myPoin;
-                        else if (soal.jenis === 'JODOH') pMJ += myPoin;
-                        totalRaw += myPoin;
+                            if (soal.jenis === 'PG') pPG += myPoin;
+                            else if (soal.jenis === 'PGK') pPGK += myPoin;
+                            else if (soal.jenis === 'BS') pBS += myPoin;
+                            else if (soal.jenis === 'JODOH') pMJ += myPoin;
+                            
+                            totalRaw += myPoin;
+                        });
+                        skorAkhir = hsl.skor; 
+                    } else if (isLate) {
+                        status = 'Sedang Ujian (Susulan)';
+                    } else {
+                        if(tempPaketHasil.waktuMulai && tempPaketHasil.batasWaktu) {
+                            const now = new Date(); 
+                            const startTime = new Date(tempPaketHasil.waktuMulai); 
+                            const endTime = new Date(tempPaketHasil.batasWaktu);
+                            if (now >= startTime && now <= endTime) status = 'Sedang Ujian';
+                        }
+                    }
+
+                    excelData.push({
+                        "No": idx + 1,
+                        "NIS": s.username,
+                        "Nama Siswa": s.nama,
+                        "Kelas": s.kelas,
+                        "Status": status,
+                        "Poin PG": hsl ? pPG : '-',
+                        "Poin PGK": hsl ? pPGK : '-',
+                        "Poin BS": hsl ? pBS : '-',
+                        "Poin MJ": hsl ? pMJ : '-',
+                        "Total Poin Mentah": hsl ? totalRaw : '-',
+                        "Skor Akhir (Skala 100)": hsl ? skorAkhir : '-'
                     });
-                    skorAkhir = hsl.skor; 
-                } else if (isLate) {
-                    status = 'Sedang Ujian (Susulan)';
-                } else {
-                    const now = new Date(); const startTime = new Date(tempPaketHasil.waktuMulai); const endTime = new Date(tempPaketHasil.batasWaktu);
-                    if (now >= startTime && now <= endTime) status = 'Sedang Ujian';
-                }
-
-                // Masukkan data siswa 1-per-1 ke row Excel
-                excelData.push({
-                    "No": idx + 1,
-                    "NIS": s.username,
-                    "Nama Siswa": s.nama,
-                    "Kelas": s.kelas,
-                    "Status": status,
-                    "Poin PG": hsl ? pPG : '-',
-                    "Poin PGK": hsl ? pPGK : '-',
-                    "Poin BS": hsl ? pBS : '-',
-                    "Poin MJ": hsl ? pMJ : '-',
-                    "Total Poin Mentah": hsl ? totalRaw : '-',
-                    "Skor Akhir (Skala 100)": hsl ? skorAkhir : '-'
                 });
-            });
 
-            // Eksekusi Konversi Data menjadi File Excel Asli (.xlsx)
-            const worksheet = XLSX.utils.json_to_sheet(excelData);
-            
-            // Atur lebar kolom agar rapi saat Excel dibuka
-            worksheet['!cols'] = [
-                { wch: 5 },  // No
-                { wch: 15 }, // NIS
-                { wch: 35 }, // Nama Siswa
-                { wch: 10 }, // Kelas
-                { wch: 20 }, // Status
-                { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, // Poin-poin
-                { wch: 20 }, // Total Poin Mentah
-                { wch: 25 }  // Skor Akhir (Skala 100)
-            ];
+                const worksheet = XLSX.utils.json_to_sheet(excelData);
+                worksheet['!cols'] = [ { wch: 5 }, { wch: 15 }, { wch: 35 }, { wch: 10 }, { wch: 20 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 20 }, { wch: 25 } ];
 
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Ujian");
-            
-            // Download File
-            const fileName = `Rekap_Nilai_${tempPaketHasil.mapel}_Kelas_${tempKelasHasil}.xlsx`;
-            XLSX.writeFile(workbook, fileName);
-            showToast("File Excel berhasil diunduh!", "success");
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Ujian");
+                
+                // Mencegah error gagal save jika nama mapel/kelas menggunakan huruf terlarang Windows (misal garis miring)
+                const cleanMapel = String(tempPaketHasil.mapel || "Ujian").replace(/[^a-zA-Z0-9 ]/g, "");
+                const cleanKelas = String(tempKelasHasil || "Kelas").replace(/[^a-zA-Z0-9 ]/g, "");
+                const fileName = `Rekap_Nilai_${cleanMapel}_Kelas_${cleanKelas}.xlsx`;
+                
+                XLSX.writeFile(workbook, fileName);
+                showToast("File Excel berhasil diunduh!", "success");
+            } catch(err) {
+                console.error(err);
+                showToast("Terjadi kesalahan sistem: " + err.message, "error");
+            }
         }
 
         // --- STREAMING_CHUNK:PDF Rendering Engine... ---
@@ -4387,84 +4401,83 @@
             }, 1000);
         }
 
-        // FITUR BARU: Export Excel Token
+        // --- FITUR BARU: Export Excel Token ---
         function exportExcelToken() {
+            if (typeof XLSX === 'undefined') return showToast("Gagal memuat sistem Excel. Pastikan koneksi internet stabil.", "error");
+            
             showToast("Menyiapkan file Excel...", "info");
             
-            // Replikasi filter yang sedang aktif di layar
-            let tSusulan = dbToken.filter(t => t.jenis !== 'Reguler'); 
-            
-            if (currentTokenFilter === 'unused') tSusulan = tSusulan.filter(t => !t.isUsed);
-            if (currentTokenFilter === 'used') tSusulan = tSusulan.filter(t => t.isUsed);
-            if (currentTokenFilter === 'susulan') tSusulan = tSusulan.filter(t => t.jenis === 'Susulan');
-            if (currentTokenFilter === 'blokir') tSusulan = tSusulan.filter(t => t.jenis === 'Buka_Blokir');
-
-            if (currentTokenPaketFilter !== 'all') {
-                tSusulan = tSusulan.filter(t => t.paketId === currentTokenPaketFilter);
-            }
-
-            const searchQuery = (document.getElementById('tokenSearch')?.value || '').toLowerCase();
-            if(searchQuery) {
-                tSusulan = tSusulan.filter(t => {
-                    const pkt = dbPaket.find(p => p.id === t.paketId);
-                    const mapel = pkt ? pkt.nama.toLowerCase() : '';
-                    const user = (t.usedBy || '').toLowerCase();
-                    const token = t.token.toLowerCase();
-                    return mapel.includes(searchQuery) || user.includes(searchQuery) || token.includes(searchQuery);
-                });
-            }
-
-            if (tSusulan.length === 0) return showToast("Tidak ada data token untuk diexport", "error");
-
-            const excelData = [];
-            tSusulan.forEach((t, idx) => {
-                const pkt = dbPaket.find(p => p.id === t.paketId);
-                const namaPaket = pkt ? pkt.nama : t.paketId;
-                const mapel = pkt ? pkt.mapel : '-';
-                const status = t.jenis === 'Susulan' ? 'Susulan' : 'Buka Blokir';
-                const terpakai = t.isUsed ? 'Sudah Dipakai' : 'Belum Dipakai';
+            try {
+                let tSusulan = dbToken.filter(t => t.jenis !== 'Reguler'); 
                 
-                let userSiswa = '-';
-                let nisnSiswa = '-';
-                let kelasSiswa = '-';
-                
-                if(t.isUsed) {
-                    const swa = dbSiswa.find(s => s.nama === t.usedBy);
-                    userSiswa = t.usedBy;
-                    nisnSiswa = swa ? swa.username : '-';
-                    kelasSiswa = swa ? swa.kelas : '-';
+                if (currentTokenFilter === 'unused') tSusulan = tSusulan.filter(t => !t.isUsed);
+                if (currentTokenFilter === 'used') tSusulan = tSusulan.filter(t => t.isUsed);
+                if (currentTokenFilter === 'susulan') tSusulan = tSusulan.filter(t => t.jenis === 'Susulan');
+                if (currentTokenFilter === 'blokir') tSusulan = tSusulan.filter(t => t.jenis === 'Buka_Blokir');
+
+                if (currentTokenPaketFilter !== 'all') {
+                    tSusulan = tSusulan.filter(t => String(t.paketId) === String(currentTokenPaketFilter));
                 }
 
-                // Masukkan data ke array Excel
-                excelData.push({
-                    "No": idx + 1,
-                    "Token Akses": t.token,
-                    "Paket Ujian": namaPaket,
-                    "Mata Pelajaran": mapel,
-                    "Kategori Token": status,
-                    "Status Terpakai": terpakai,
-                    "Nama Siswa": userSiswa,
-                    "NISN Siswa": nisnSiswa,
-                    "Kelas": kelasSiswa,
-                    "Waktu Dipakai": t.usedTime || '-'
+                const searchQuery = (document.getElementById('tokenSearch')?.value || '').toLowerCase();
+                if(searchQuery) {
+                    tSusulan = tSusulan.filter(t => {
+                        const pkt = dbPaket.find(p => p.id === t.paketId);
+                        const mapel = pkt ? pkt.nama.toLowerCase() : '';
+                        const user = (t.usedBy || '').toLowerCase();
+                        const token = t.token.toLowerCase();
+                        return mapel.includes(searchQuery) || user.includes(searchQuery) || token.includes(searchQuery);
+                    });
+                }
+
+                if (tSusulan.length === 0) return showToast("Tidak ada data token untuk diexport", "error");
+
+                const excelData = [];
+                tSusulan.forEach((t, idx) => {
+                    const pkt = dbPaket.find(p => p.id === t.paketId);
+                    const namaPaket = pkt ? pkt.nama : t.paketId;
+                    const mapel = pkt ? pkt.mapel : '-';
+                    const status = t.jenis === 'Susulan' ? 'Susulan' : 'Buka Blokir';
+                    const terpakai = t.isUsed ? 'Sudah Dipakai' : 'Belum Dipakai';
+                    
+                    let userSiswa = '-';
+                    let nisnSiswa = '-';
+                    let kelasSiswa = '-';
+                    
+                    if(t.isUsed) {
+                        const swa = dbSiswa.find(s => s.nama === t.usedBy);
+                        userSiswa = t.usedBy || '-';
+                        nisnSiswa = swa ? swa.username : '-';
+                        kelasSiswa = swa ? swa.kelas : '-';
+                    }
+
+                    excelData.push({
+                        "No": idx + 1,
+                        "Token Akses": t.token,
+                        "Paket Ujian": namaPaket,
+                        "Mata Pelajaran": mapel,
+                        "Kategori Token": status,
+                        "Status Terpakai": terpakai,
+                        "Nama Siswa": userSiswa,
+                        "NISN Siswa": nisnSiswa,
+                        "Kelas": kelasSiswa,
+                        "Waktu Dipakai": t.usedTime || '-'
+                    });
                 });
-            });
 
-            const worksheet = XLSX.utils.json_to_sheet(excelData);
-            
-            // Pengaturan lebar kolom agar excel rapi saat diunduh
-            worksheet['!cols'] = [
-                { wch: 5 }, { wch: 15 }, { wch: 35 }, { wch: 20 }, 
-                { wch: 15 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, 
-                { wch: 10 }, { wch: 20 }
-            ];
+                const worksheet = XLSX.utils.json_to_sheet(excelData);
+                worksheet['!cols'] = [ { wch: 5 }, { wch: 15 }, { wch: 35 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 20 } ];
 
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Riwayat Token");
-            
-            const fileName = `Data_Token_CBT_${new Date().getTime()}.xlsx`;
-            XLSX.writeFile(workbook, fileName);
-            showToast("File Excel Token berhasil diunduh!", "success");
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Riwayat Token");
+                
+                const fileName = `Data_Token_CBT_${new Date().getTime()}.xlsx`;
+                XLSX.writeFile(workbook, fileName);
+                showToast("File Excel Token berhasil diunduh!", "success");
+            } catch(err) {
+                console.error(err);
+                showToast("Terjadi kesalahan sistem: " + err.message, "error");
+            }
         }
 
         async function buatToken(e) { 
