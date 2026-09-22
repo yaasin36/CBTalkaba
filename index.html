@@ -1469,7 +1469,6 @@
                     setupAdminUI();
                     switchView('view-admin-dashboard');
                     setTimeout(() => renderDashboardAdmin(), 300);
-                    setInterval(() => syncAdminRealtime(false), 10000);
                 } else if(parsed.type === 'siswa') {
                     document.getElementById('loading-text').innerText = "Memverifikasi Sesi...";
                     
@@ -1828,7 +1827,6 @@
                         setupAdminUI();
                         switchView('view-admin-dashboard');
                         setTimeout(() => renderDashboardAdmin(), 300);
-                        setInterval(() => syncAdminRealtime(false), 10000);
                     }, null, 'Masuk Dashboard');
                 }
             } else {
@@ -3199,8 +3197,14 @@
             if(manual) showToast("Menyinkronkan data...", "info");
             
             try {
-                // Tarik data terbaru dari server secara diam-diam di latar belakang
+                // 1. REKAM DATA LAMA (Untuk mendeteksi apakah ada perubahan baru dari server)
+                const dataLama = JSON.stringify({ h: dbHasil, s: dbSiswa, t: dbToken, p: dbPaket });
+                
+                // 2. Tarik data terbaru dari server secara diam-diam di latar belakang
                 await window.tarikDataServer(); 
+                
+                // 3. REKAM DATA BARU
+                const dataBaru = JSON.stringify({ h: dbHasil, s: dbSiswa, t: dbToken, p: dbPaket });
                 
                 // Refresh komponen UI yang kebetulan sedang dibuka saja (Seamless Update)
                 if(!document.getElementById('tab-token').classList.contains('hidden')) renderFormToken();
@@ -3227,8 +3231,13 @@
                     }
                 }
 
-                // Notifikasi sukses setelah tabel selesai di-render ulang
-                if(manual) showToast("Data berhasil disinkronkan secara Realtime!", "success");
+                // 4. MUNCULKAN NOTIFIKASI
+                if(manual) {
+                    showToast("Data berhasil disinkronkan!", "success");
+                } else if (dataLama !== dataBaru) {
+                    // MUNCUL SAAT AUTO-SYNC MENDETEKSI ADA NILAI/TOKEN/SISWA YANG BERUBAH DI DATABASE
+                    showToast("Data Anda berhasil di update!", "success");
+                }
             } catch(e) { 
                 console.error("Sync Error:", e);
                 if(manual) showToast("Gagal sinkronisasi, periksa koneksi internet.", "error"); 
