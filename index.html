@@ -1453,6 +1453,9 @@
         // FUNGSI INIT ONLOAD
         // FUNGSI INIT ONLOAD
         window.onload = async () => {
+            // Lakukan sinkronisasi waktu ke server dunia secara otomatis
+            await sinkronisasiWaktuGlobal();
+
             // CEK SESSION LAMA
             const savedSession = localStorage.getItem('cbt_user');
             if (savedSession) {
@@ -1670,6 +1673,11 @@
                         canvas.width = width;
                         canvas.height = height;
                         const ctx = canvas.getContext('2d');
+                        
+                        // PENTING: Beri background putih agar PNG transparan tidak berubah jadi hitam pekat
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        
                         ctx.drawImage(img, 0, 0, width, height);
                         
                         // Kompres otomatis jadi JPEG dengan kualitas 60% (Sangat ringan, tidak sampai 100kb)
@@ -1703,6 +1711,28 @@
         function exitFullscreen() { if (document.fullscreenElement || document.webkitFullscreenElement) { if (document.exitFullscreen) document.exitFullscreen(); else if (document.webkitExitFullscreen) document.webkitExitFullscreen(); } }
 
         // --- GLOBAL VARIABLES ---
+        let serverTimeOffset = 0; // PENYIMPAN SELISIH WAKTU (ANTI-CHEAT WAKTU LAPTOP)
+        
+        async function sinkronisasiWaktuGlobal() {
+            try {
+                // Menarik waktu mutlak dari Server Waktu Dunia (WIB Jakarta)
+                const res = await fetch('https://worldtimeapi.org/api/timezone/Asia/Jakarta');
+                if (res.ok) {
+                    const data = await res.json();
+                    const realTime = new Date(data.datetime).getTime();
+                    serverTimeOffset = realTime - Date.now(); // Hitung selisih waktu laptop siswa dengan waktu dunia
+                    console.log("Sistem Anti-Manipulasi Waktu Aktif! Offset:", serverTimeOffset);
+                }
+            } catch (e) {
+                console.warn("Koneksi server waktu terhalang, memakai waktu perangkat sementara.");
+            }
+        }
+
+        // FUNGSI SUPER: Pengganti 'new Date()' agar kebal dari manipulasi jam laptop
+        function getRealTime() {
+            return new Date(Date.now() + serverTimeOffset);
+        }
+
         let currentSiswa = null;
         let activePaket = null;
         let soalSiswa = []; let jawabanSiswa = {}; let statusRagu = {}; 
@@ -1886,7 +1916,7 @@
             // Urutkan dari jadwal yang paling dekat/awal (Ascending)
             myPakets.sort((a, b) => new Date(a.waktuMulai) - new Date(b.waktuMulai));
 
-            const now = new Date();
+            const now = getRealTime(); // ANTI-CHEAT: Gunakan waktu server dunia, bukan laptop
 
             // --- REVISI: PENGELOMPOKAN BARU SESUAI STATUS SISWA ---
             const groups = {
@@ -2119,7 +2149,7 @@
           document.getElementById('header-mapel').textContent = activePaket.nama;
           document.getElementById('header-nama').textContent = `${currentSiswa.nama} - ${currentSiswa.kelas}`;
 
-          const nowTime = new Date();
+          const nowTime = getRealTime(); // ANTI-CHEAT: Kunci waktu awal ujian
           let batasString = String(activePaket.batasWaktu).replace(" ", "T");
           const endTime = new Date(batasString);
           let sisaDetik = Math.floor((endTime - nowTime) / 1000);
@@ -2181,7 +2211,7 @@
                 statusRagu: statusRagu,
                 currentIndex: currentIndex,
                 waktuTersisa: waktuTersisa,
-                waktuMulaiUjian: waktuMulaiUjian ? waktuMulaiUjian.getTime() : new Date().getTime() 
+                waktuMulaiUjian: waktuMulaiUjian ? waktuMulaiUjian.getTime() : getRealTime().getTime() 
             };
 
             try {
@@ -2778,7 +2808,7 @@
             if (currentSiswa.cheatCount >= 6) {
                 // HANYA kumpulkan paksa jika ini sudah pelanggaran ke-6 (Fatal)
                 isExamFinished = true;
-                let durasiDetik = waktuMulaiUjian ? Math.floor((new Date() - waktuMulaiUjian) / 1000) : 0;
+                let durasiDetik = waktuMulaiUjian ? Math.floor((getRealTime() - waktuMulaiUjian) / 1000) : 0;
                 const durasiStr = `${Math.floor(durasiDetik / 60)} Menit ${durasiDetik % 60} Detik (Keluar Paksa)`;
                 currentSiswa.statusUjian = true;
                 const finalData = { id: Date.now(), siswaId: currentSiswa.id || currentSiswa.username, nama: currentSiswa.nama, kelas: currentSiswa.kelas, paketId: activePaket.id, mapel: activePaket.mapel, detail: jawabanSiswa, durasi: durasiStr, koreksiEsai: {} };
@@ -2816,7 +2846,7 @@
         function bukaModalSelesai() { 
             if (!activePaket) return;
             
-            const now = new Date();
+            const now = getRealTime(); // ANTI-CHEAT CEK TOMBOL SELESAI
             
             // Mengambil jam asli jadwal ujian dimulai (Misal: 07.00)
             const jadwalMulaiPaket = new Date(activePaket.waktuMulai); 
@@ -2928,9 +2958,9 @@
             clearInterval(timerInterval); 
             tutupModalSelesai(); 
             exitFullscreen(); 
-            document.getElementById('view-exam').classList.remove('exam-active-mode');
+           document.getElementById('view-exam').classList.remove('exam-active-mode');
             
-            let durasiDetik = waktuMulaiUjian ? Math.floor((new Date() - waktuMulaiUjian) / 1000) : 0;
+            let durasiDetik = waktuMulaiUjian ? Math.floor((getRealTime() - waktuMulaiUjian) / 1000) : 0;
             const durasiStr = `${Math.floor(durasiDetik / 60)} Menit ${durasiDetik % 60} Detik`;
             
             switchView('view-loading'); 
@@ -2972,7 +3002,7 @@
                     localStorage.removeItem(`exam_state_${currentSiswa.id}_${activePaket.id}`);
 
                     setTimeout(() => {
-                        const now = new Date();
+                        const now = getRealTime();
                         document.getElementById('finish-nama').textContent = currentSiswa.nama; 
                         document.getElementById('finish-mapel').textContent = activePaket.nama;
                         document.getElementById('finish-waktu').textContent = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} WIB`; 
