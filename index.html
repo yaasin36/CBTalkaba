@@ -1469,7 +1469,7 @@
                     setupAdminUI();
                     switchView('view-admin-dashboard');
                     setTimeout(() => renderDashboardAdmin(), 300);
-                    setInterval(() => syncAdminRealtime(false), 15000);
+                    setInterval(() => syncAdminRealtime(false), 10000);
                 } else if(parsed.type === 'siswa') {
                     document.getElementById('loading-text').innerText = "Memverifikasi Sesi...";
                     
@@ -1701,9 +1701,21 @@
             }
 
             try {
-                if (elem.requestFullscreen) elem.requestFullscreen().catch(e=>console.warn()); 
-                else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen().catch(e=>console.warn()); 
-                else if (elem.msRequestFullscreen) elem.msRequestFullscreen().catch(e=>console.warn());
+                let req = null;
+                if (elem.requestFullscreen) req = elem.requestFullscreen(); 
+                else if (elem.webkitRequestFullscreen) req = elem.webkitRequestFullscreen(); 
+                else if (elem.msRequestFullscreen) req = elem.msRequestFullscreen();
+                
+                // --- FITUR BARU: MENGUNCI LAYAR AGAR TETAP BERDIRI (PORTRAIT) ---
+                if (req) {
+                    req.then(() => {
+                        if (screen.orientation && screen.orientation.lock) {
+                            screen.orientation.lock('portrait').catch(err => {
+                                console.warn("Browser HP tidak mendukung paksa kunci layar.");
+                            });
+                        }
+                    }).catch(e => console.warn(e));
+                }
             } catch (error) {
                 console.warn("Fullscreen API failed, continuing exam normally.");
             }
@@ -1816,7 +1828,7 @@
                         setupAdminUI();
                         switchView('view-admin-dashboard');
                         setTimeout(() => renderDashboardAdmin(), 300);
-                        setInterval(() => syncAdminRealtime(false), 15000);
+                        setInterval(() => syncAdminRealtime(false), 10000);
                     }, null, 'Masuk Dashboard');
                 }
             } else {
@@ -1917,16 +1929,25 @@
             myPakets.sort((a, b) => new Date(a.waktuMulai) - new Date(b.waktuMulai));
 
             const now = getRealTime(); // ANTI-CHEAT: Gunakan waktu server dunia, bukan laptop
+            
+            // Ambil batas waktu hari ini dan besok untuk filter presisi
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            const tomorrowStart = todayStart + (24 * 60 * 60 * 1000);
 
-            // --- REVISI: PENGELOMPOKAN BARU SESUAI STATUS SISWA ---
+            // --- REVISI: URUTAN GRUP (YANG TERLEWAT PALING ATAS) ---
             const groups = {
-                'Hari Ini': [],
                 'Belum Ujian (Susulan)': [],
+                'Hari Ini': [],
+                'Besok': [],
+                'Akan Datang': [],
                 'Riwayat Ujian': []
             };
 
             myPakets.forEach(p => {
+                const startTime = new Date(p.waktuMulai);
                 const endTime = new Date(p.batasWaktu);
+                const pDate = new Date(startTime.getFullYear(), startTime.getMonth(), startTime.getDate()).getTime();
+                
                 // Cek apakah siswa ini sudah mengerjakan paket ini
                 const isFinished = dbHasil.some(h => String(h.siswaId) === String(currentSiswa.id) && h.paketId === p.id);
 
@@ -1936,8 +1957,14 @@
                     // Waktu sudah habis tapi siswa belum mengerjakan
                     groups['Belum Ujian (Susulan)'].push(p);
                 } else {
-                    // Waktu ujian sedang aktif atau akan datang
-                    groups['Hari Ini'].push(p);
+                    // Belum dikerjakan dan waktu belum habis, cek tanggalnya
+                    if (pDate === todayStart) {
+                        groups['Hari Ini'].push(p);
+                    } else if (pDate === tomorrowStart) {
+                        groups['Besok'].push(p);
+                    } else {
+                        groups['Akan Datang'].push(p);
+                    }
                 }
             });
 
@@ -1949,9 +1976,11 @@
                 let icon = 'fas fa-calendar-day';
                 let color = 'text-indigo-600';
                 
-                if(groupName === 'Hari Ini') { icon = 'fas fa-calendar-check'; color = 'text-emerald-500'; }
-                if(groupName === 'Belum Ujian (Susulan)') { icon = 'fas fa-exclamation-triangle'; color = 'text-amber-500'; }
-                if(groupName === 'Riwayat Ujian') { icon = 'fas fa-check-double'; color = 'text-slate-500'; }
+                if(groupName === 'Belum Ujian (Susulan)') { icon = 'fas fa-exclamation-triangle'; color = 'text-red-500'; }
+                else if(groupName === 'Hari Ini') { icon = 'fas fa-calendar-check'; color = 'text-emerald-500'; }
+                else if(groupName === 'Besok') { icon = 'fas fa-calendar-plus'; color = 'text-amber-500'; }
+                else if(groupName === 'Akan Datang') { icon = 'fas fa-calendar-alt'; color = 'text-blue-500'; }
+                else if(groupName === 'Riwayat Ujian') { icon = 'fas fa-check-double'; color = 'text-slate-500'; }
 
                 // 1. Render Judul Pemisah Grup (Full Width Column)
                 grid.innerHTML += `
