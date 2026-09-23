@@ -1932,12 +1932,12 @@
             const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
             const tomorrowStart = todayStart + (24 * 60 * 60 * 1000);
 
-            // --- REVISI: URUTAN GRUP (YANG TERLEWAT PALING ATAS) ---
+            // --- REVISI: URUTAN GRUP (HARI INI PALING ATAS) ---
             const groups = {
-                'Belum Ujian (Susulan)': [],
                 'Hari Ini': [],
                 'Besok': [],
                 'Akan Datang': [],
+                'Belum Ujian (Susulan)': [],
                 'Riwayat Ujian': []
             };
 
