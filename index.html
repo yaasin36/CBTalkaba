@@ -1469,6 +1469,7 @@
                     setupAdminUI();
                     switchView('view-admin-dashboard');
                     setTimeout(() => renderDashboardAdmin(), 300);
+                    mulaiSmartPolling(); // <--- AKTIFKAN SMART POLLING DI SINI
                 } else if(parsed.type === 'siswa') {
                     document.getElementById('loading-text').innerText = "Memverifikasi Sesi...";
                     
@@ -1827,12 +1828,22 @@
                         setupAdminUI();
                         switchView('view-admin-dashboard');
                         setTimeout(() => renderDashboardAdmin(), 300);
+                        mulaiSmartPolling(); // <--- AKTIFKAN SMART POLLING DI SINI
                     }, null, 'Masuk Dashboard');
                 }
             } else {
+                // Menangkap pesan error langsung dari Google Sheets (Kode.gs)
+                let rawMessage = res.message || "Gagal masuk ke sistem. Silakan coba lagi.";
+                let pesanError = rawMessage.replace("Error: ", "").replace("Exception: ", ""); // Membersihkan teks bawaan server
+                
+                // Ubah teks merah di bawah kotak password
+                errEl.innerHTML = `<i class="fas fa-exclamation-circle mr-1"></i> ${pesanError}`;
                 errEl.classList.remove('hidden');
+                
                 formBox.classList.remove('shake'); void formBox.offsetWidth; formBox.classList.add('shake');
-                showAlertModal('error', 'Login Gagal', 'Username atau Password yang Anda ketik salah. Silakan periksa kembali!', () => {
+                
+                // Ubah teks di dalam pop-up modal error
+                showAlertModal('error', 'Akses Ditolak', pesanError, () => {
                     document.getElementById('loginPass').value = '';
                     document.getElementById('loginPass').focus();
                 }, null, 'Coba Lagi');
@@ -3182,6 +3193,23 @@
             else if(tabId === 'tab-admin') renderTableAdmin();
             else if(tabId === 'tab-banksoal') renderGridPaket();
             else if(tabId === 'tab-token') renderFormToken();
+        }
+
+        // --- FITUR BARU: SMART POLLING (REALTIME HEMAT KUOTA) ---
+        let smartSyncInterval = null;
+        function mulaiSmartPolling() {
+            if(smartSyncInterval) clearInterval(smartSyncInterval);
+            smartSyncInterval = setInterval(() => {
+                // Deteksi menu mana yang sedang dibuka oleh Admin
+                const isTabToken = !document.getElementById('tab-token').classList.contains('hidden');
+                const isTabHasil = !document.getElementById('tab-hasil').classList.contains('hidden');
+                const isTabSoal = !document.getElementById('tab-banksoal').classList.contains('hidden');
+                
+                // JIKA admin sedang membuka tab Token, Hasil, atau Soal, LAKUKAN SINKRONISASI!
+                if (isTabToken || isTabHasil || isTabSoal) {
+                    syncAdminRealtime(false);
+                }
+            }, 10000); // 10 detik sekali (sangat aman untuk Google Sheet)
         }
 
         async function syncAdminRealtime(manual = false) {
