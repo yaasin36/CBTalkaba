@@ -609,23 +609,91 @@
                         <i class="fas fa-info-circle text-xl"></i>
                         <p class="text-sm font-semibold" id="dash-info-mapel">Menampilkan data keseluruhan.</p>
                     </div>
+
+                    <!-- FITUR BARU: FILTER DASHBOARD (TANGGAL, MAPEL, PAKET, KELAS MULTIPLE) -->
+                    <div class="mb-8 bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-200 flex flex-col lg:flex-row gap-4 justify-between items-center relative z-[60]">
+                        <!-- Perhatikan rounded-l ditambahkan agar warna tetap melengkung walau tanpa overflow-hidden -->
+                        <div class="absolute left-0 top-0 w-1.5 h-full bg-indigo-500 rounded-l-[1.5rem]"></div>
+                        
+                        <div class="w-full lg:w-1/4 pl-2">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2"><i class="fas fa-calendar text-blue-400 mr-1"></i> Tanggal Ujian</label>
+                            <select id="dashFilterTanggal" onchange="changeDashTanggal()" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm bg-slate-50 text-slate-700 font-bold outline-none cursor-pointer focus:border-indigo-500 transition shadow-inner">
+                                <!-- Disuntik JS -->
+                            </select>
+                        </div>
+                        <div class="w-full lg:w-1/4 pl-2 lg:pl-0">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2"><i class="fas fa-book text-indigo-400 mr-1"></i> Mata Pelajaran</label>
+                            <select id="dashFilterMapel" onchange="changeDashMapel()" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm bg-slate-50 text-slate-700 font-bold outline-none cursor-pointer focus:border-indigo-500 transition shadow-inner">
+                                <option value="all">Semua Mata Pelajaran</option>
+                            </select>
+                        </div>
+                        <div class="w-full lg:w-1/4 pl-2 lg:pl-0">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2"><i class="fas fa-folder-open text-emerald-400 mr-1"></i> Paket Ujian</label>
+                            <select id="dashFilterPaket" onchange="changeDashPaket()" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm bg-slate-50 text-slate-700 font-bold outline-none cursor-pointer focus:border-emerald-500 transition shadow-inner pr-8 truncate">
+                                <option value="all">Semua Paket Ujian</option>
+                            </select>
+                        </div>
+                        
+                        <!-- DROP MULTI-SELECT KELAS KUSTOM -->
+                        <div class="w-full lg:w-1/4 pl-2 lg:pl-0">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2"><i class="fas fa-layer-group text-amber-400 mr-1"></i> Filter Kelas (Bisa Multi)</label>
+                            <div class="relative" id="dashFilterKelasContainer">
+                                <div class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm bg-slate-50 text-slate-700 font-bold outline-none cursor-pointer hover:border-amber-500 transition shadow-inner flex justify-between items-center" onclick="document.getElementById('dashKelasDropdown').classList.toggle('hidden')">
+                                    <span id="dashKelasText" class="truncate">Semua Kelas</span>
+                                    <i class="fas fa-chevron-down text-xs text-slate-400"></i>
+                                </div>
+                                <div id="dashKelasDropdown" class="hidden absolute top-[calc(100%+0.4rem)] left-0 w-full bg-white border border-slate-200 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.2)] rounded-xl max-h-56 overflow-y-auto z-[70] p-2 flex flex-col gap-1">
+                                    <!-- Disuntik JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card Statistik Mini -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                         <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 flex justify-between items-center">
-                            <div><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Peserta</p><h3 class="text-4xl font-black text-[#0f172a]" id="stat-siswa">0</h3></div>
+                            <div><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Target Peserta</p><h3 class="text-4xl font-black text-[#0f172a]" id="stat-siswa">0</h3></div>
                             <div class="w-14 h-14 bg-slate-50 border border-slate-100 text-slate-400 rounded-2xl flex items-center justify-center text-2xl shadow-inner"><i class="fas fa-users"></i></div>
                         </div>
                         <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 flex justify-between items-center">
-                            <div><p class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">Data Hasil</p><h3 class="text-4xl font-black text-emerald-600" id="stat-selesai">0</h3></div>
-                            <div class="w-14 h-14 bg-emerald-50 border border-emerald-100 text-emerald-500 rounded-2xl flex items-center justify-center text-2xl shadow-inner"><i class="fas fa-file-signature"></i></div>
+                            <div><p class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">Sudah Selesai</p><h3 class="text-4xl font-black text-emerald-600" id="stat-selesai">0</h3></div>
+                            <div class="w-14 h-14 bg-emerald-50 border border-emerald-100 text-emerald-500 rounded-2xl flex items-center justify-center text-2xl shadow-inner"><i class="fas fa-check-double"></i></div>
                         </div>
                         <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 flex justify-between items-center">
                             <div><p class="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-1">Total Soal</p><h3 class="text-4xl font-black text-indigo-600" id="stat-soal">0</h3></div>
                             <div class="w-14 h-14 bg-indigo-50 border border-indigo-100 text-indigo-500 rounded-2xl flex items-center justify-center text-2xl shadow-inner"><i class="fas fa-database"></i></div>
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                    <!-- Area Grafik -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                         <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-6"><h2 class="text-lg font-black mb-4 tracking-tight">Rata-rata Nilai / Kelas</h2><div class="h-64"><canvas id="chartNilai"></canvas></div></div>
-                        <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-6"><h2 class="text-lg font-black mb-4 tracking-tight">Status Ujian Siswa (Global)</h2><div class="w-full h-64 flex justify-center"><canvas id="chartPartisipasi"></canvas></div></div>
+                        <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-6"><h2 class="text-lg font-black mb-4 tracking-tight">Status Ujian Siswa (Selesai vs Belum)</h2><div class="w-full h-64 flex justify-center"><canvas id="chartPartisipasi"></canvas></div></div>
+                    </div>
+
+                    <!-- TABEL SISWA BELUM UJIAN -->
+                    <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-6">
+                        <div class="flex justify-between items-center mb-4 pb-4 border-b border-slate-100">
+                            <div>
+                                <h2 class="text-lg font-black tracking-tight flex items-center gap-2"><i class="fas fa-user-times text-rose-500"></i> Siswa Belum Ujian</h2>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Berdasarkan filter di atas</p>
+                            </div>
+                            <span class="bg-rose-50 border border-rose-100 text-rose-600 font-black px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-widest shadow-sm" id="badge-belum-ujian">0 Siswa</span>
+                        </div>
+                        <div class="max-h-80 overflow-y-auto pr-2">
+                            <table class="w-full text-left text-sm whitespace-nowrap">
+                                <thead class="bg-white text-slate-400 font-bold uppercase text-[10px] tracking-wider sticky top-0 z-10 shadow-[0_4px_6px_-6px_rgba(0,0,0,0.1)]">
+                                    <tr>
+                                        <th class="p-3 border-b border-slate-200">Peserta</th>
+                                        <th class="p-3 text-center border-b border-slate-200">Kelas</th>
+                                        <th class="p-3 border-b border-slate-200">Paket Ujian Tertunda</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-dash-belum-ujian" class="divide-y divide-slate-100 font-medium text-slate-700">
+                                    <!-- Disuntik JS -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
@@ -768,7 +836,8 @@
                                     <h2 class="text-lg font-black text-slate-800" id="label-detail-paket">Nama Paket</h2>
                                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Status dan Nilai Siswa</p>
                                 </div>
-                                <div class="flex gap-2">
+                                <div class="flex flex-wrap justify-end gap-2">
+                                    <button onclick="bukaAnalisisSoal()" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-700 shadow-sm transition flex items-center gap-2"><i class="fas fa-chart-bar"></i> Analisis Soal</button>
                                     <button onclick="exportExcelHasil()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-emerald-700 shadow-sm transition flex items-center gap-2"><i class="fas fa-file-excel"></i> Export Excel</button>
                                     <button onclick="printTabelHasil()" class="bg-[#0f172a] text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-[#1e293b] shadow-sm transition flex items-center gap-2"><i class="fas fa-print"></i> Cetak Tabel</button>
                                 </div>
@@ -1205,7 +1274,16 @@
                     <!-- 3. BLOK DINAMIS: ESAI -->
                     <div id="block-esai" class="mb-8 hidden bg-white p-6 rounded-[1.5rem] border border-slate-200 shadow-sm">
                         <label class="block text-xs font-black text-slate-600 uppercase tracking-widest mb-3"><i class="fas fa-keyboard mr-2 text-slate-400"></i> 3. Uraian / Esai</label>
-                        <p class="text-xs text-slate-600 font-medium bg-indigo-50 p-4 rounded-xl border border-indigo-100 shadow-inner leading-relaxed"><i class="fas fa-info-circle mr-2 text-indigo-500"></i>Sistem akan menyediakan kotak teks berukuran besar untuk siswa mengetik jawaban secara manual saat ujian. Soal jenis ini tidak memiliki kunci jawaban mutlak dan harus <b>dikoreksi secara manual</b> oleh guru setelah ujian selesai.</p>
+                        <p class="text-xs text-slate-600 font-medium bg-indigo-50 p-4 rounded-xl border border-indigo-100 shadow-inner leading-relaxed mb-5"><i class="fas fa-info-circle mr-2 text-indigo-500"></i>Sistem akan menyediakan kotak teks berukuran besar untuk siswa mengetik jawaban secara manual saat ujian. Soal jenis ini tidak memiliki kunci jawaban mutlak dan harus <b>dikoreksi secara manual</b> oleh guru setelah ujian selesai.</p>
+                        
+                        <!-- Input Minimal Kata -->
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2"><i class="fas fa-sort-numeric-up-alt text-indigo-500 mr-1"></i> Batas Minimal Kata Jawaban (Opsional)</label>
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                                <input type="number" id="edit-min-kata-esai" min="0" value="0" class="w-full sm:w-36 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-black text-indigo-600 bg-white outline-none focus:border-indigo-500 shadow-sm text-center" placeholder="0">
+                                <span class="text-xs text-slate-500 font-medium">Kata <span class="text-slate-400 italic">(Isi <b>0</b> jika tidak ingin memberi batas minimal kata kepada siswa)</span></span>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -1213,6 +1291,36 @@
             <div class="px-6 py-5 bg-white border-t border-slate-200 flex justify-end gap-4 z-10 shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.05)]">
                 <button type="button" onclick="tutupModalSoal()" class="px-6 py-3.5 bg-slate-50 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-100 text-sm transition shadow-sm">Batal</button>
                 <button type="button" onclick="simpanSoal(event)" id="btn-save-soal" class="px-8 py-3.5 bg-[#0f172a] text-white font-bold rounded-xl hover:bg-[#1e293b] text-sm shadow-[0_4px_15px_-3px_rgba(15,23,42,0.4)] transition active:scale-95 flex items-center justify-center gap-2"><i class="fas fa-save"></i> Simpan ke Bank Soal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ANALISIS BUTIR SOAL -->
+    <div id="modal-analisis-soal" class="fixed inset-0 bg-[#0f172a]/80 backdrop-blur-sm z-[200] hidden flex flex-col p-4 md:p-8">
+        <div class="flex justify-between items-center bg-white rounded-t-[1.5rem] p-5 max-w-5xl w-full mx-auto shadow-lg border-b border-slate-100">
+            <div>
+                <h3 class="font-black text-xl text-slate-800 flex items-center gap-2"><i class="fas fa-chart-line text-blue-500"></i> Analisis Butir Soal</h3>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1" id="analisis-subtitle">Paket X - Kelas Y</p>
+            </div>
+            <button onclick="document.getElementById('modal-analisis-soal').classList.add('hidden')" class="w-10 h-10 bg-slate-100 text-slate-600 rounded-full hover:bg-red-500 hover:text-white transition flex items-center justify-center border border-slate-200 shadow-sm"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="bg-slate-50 flex-grow max-w-5xl w-full mx-auto overflow-y-auto rounded-b-[1.5rem] p-4 md:p-8 relative">
+            
+            <!-- Area Grafik -->
+            <div class="bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-200 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="text-sm font-black text-slate-700 tracking-tight uppercase"><i class="fas fa-chart-bar text-indigo-400 mr-1.5"></i> Grafik Distribusi Jawaban Siswa</h4>
+                    <span class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-indigo-100" id="analisis-total-peserta">0 Peserta</span>
+                </div>
+                <div class="w-full h-72"><canvas id="chartAnalisis"></canvas></div>
+            </div>
+
+            <!-- List Breakdown Per Soal -->
+            <div class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-200">
+                <h4 class="text-sm font-black text-slate-700 mb-4 tracking-tight uppercase border-b border-slate-100 pb-3"><i class="fas fa-clipboard-list text-emerald-400 mr-1.5"></i> Rincian Evaluasi Per Nomor (Klik Untuk Buka)</h4>
+                <div class="space-y-3" id="analisis-list-container">
+                    <!-- Disuntik JS -->
+                </div>
             </div>
         </div>
     </div>
@@ -1856,6 +1964,7 @@
             showAlertModal('question', 'Keluar Sistem?', 'Apakah Anda yakin ingin keluar dari akun ini?', () => {
                 if(currentSiswa && typeof kirimLogSistem === 'function') kirimLogSistem("Logout", "Siswa keluar sistem CBT.");
                 if(sessionUser && typeof kirimLogSistem === 'function') kirimLogSistem("Logout", "Admin keluar dari dashboard.");
+                isDashFilterInit = false; // Reset Filter
                 localStorage.removeItem('cbt_user');
                 sessionUser = null; currentSiswa = null;
                 
@@ -2317,6 +2426,36 @@
             }, {passive: false});
         }
 
+        // FUNGSI HITUNG JUMLAH KATA
+        function hitungJumlahKata(teks) {
+            if (!teks || typeof teks !== 'string') return 0;
+            const clean = teks.trim();
+            if (clean === '') return 0;
+            return clean.split(/\s+/).length;
+        }
+
+        // FUNGSI UPDATE INDIKATOR KATA REAL-TIME SAAT SISWA MENGETIK
+        function updateCounterKataEsai(soalId, minKata, val, isEnglish = false) {
+            const jml = hitungJumlahKata(val);
+            const badge = document.getElementById(`word-counter-${soalId}`);
+            if (!badge) return;
+            
+            const txtKata = isEnglish ? 'Words' : 'Kata';
+            const txtMin = isEnglish ? 'Min.' : 'Minimal';
+
+            if (minKata > 0) {
+                const isEnough = jml >= minKata;
+                badge.className = `text-[11px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg border transition-all flex items-center gap-1.5 ${
+                    isEnough 
+                    ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
+                    : 'bg-amber-50 text-amber-600 border-amber-200'
+                }`;
+                badge.innerHTML = `<i class="fas ${isEnough ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${jml} / ${minKata} ${txtKata} (${txtMin})`;
+            } else {
+                badge.className = `text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg border bg-slate-100 text-slate-600 border-slate-200 flex items-center gap-1.5`;
+                badge.innerHTML = `<i class="fas fa-align-left text-slate-400"></i> ${jml} ${txtKata}`;
+            }
+        }
         // --- STREAMING_CHUNK:Question Rendering Engine... ---
         // --- RENDER SOAL ENGINE ---
         function renderSoalSiswa(containerId, isPreview = false) {
@@ -2549,11 +2688,45 @@
                 });
                 html += `</div></div>`;
             }
-            // 4. ESAI
+           // 4. ESAI
             else if (soal.jenis === 'ESAI') {
                 const ans = isPreview ? '' : (jawabanSiswa[soal.id] || '');
-                html += `<textarea onkeyup="${isPreview ? '' : `simpanJawabanSiswa(this.value, 'ESAI')`}" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:border-[#0f172a] focus:bg-white focus:ring-1 focus:ring-[#0f172a] transition text-sm font-medium h-48 resize-y shadow-inner" placeholder="${lang.esaiHolder}">${ans}</textarea>`;
+                const minKata = parseInt(soal.minKata) || 0;
+                const jmlKata = hitungJumlahKata(ans);
+                const txtKata = isEnglish ? 'Words' : 'Kata';
+                const txtMin = isEnglish ? 'Min.' : 'Minimal';
+
+                let badgeClass = 'bg-slate-100 text-slate-600 border-slate-200';
+                let badgeContent = `<i class="fas fa-align-left text-slate-400"></i> ${jmlKata} ${txtKata}`;
+
+                if (minKata > 0) {
+                    const isEnough = jmlKata >= minKata;
+                    badgeClass = isEnough 
+                        ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
+                        : 'bg-amber-50 text-amber-600 border-amber-200';
+                    badgeContent = `<i class="fas ${isEnough ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${jmlKata} / ${minKata} ${txtKata} (${txtMin})`;
+                }
+
+                const infoMinHtml = minKata > 0 
+                    ? `<span class="text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-lg flex items-center gap-1.5"><i class="fas fa-info-circle"></i> ${isEnglish ? `Answer with at least <b>${minKata} words</b>` : `Jawablah minimal <b>${minKata} kata</b>`}</span>`
+                    : `<span class="text-xs font-bold text-slate-400">${isEnglish ? 'Free length essay' : 'Uraian bebas'}</span>`;
+
+                const onInputEvt = isPreview 
+                    ? `updateCounterKataEsai('${soal.id}', ${minKata}, this.value, ${isEnglish})` 
+                    : `simpanJawabanSiswa(this.value, 'ESAI'); updateCounterKataEsai('${soal.id}', ${minKata}, this.value, ${isEnglish});`;
+
+                html += `
+                <div class="space-y-2">
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
+                        ${infoMinHtml}
+                        <div id="word-counter-${soal.id}" class="text-[11px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg border transition-all flex items-center gap-1.5 ${badgeClass}">
+                            ${badgeContent}
+                        </div>
+                    </div>
+                    <textarea oninput="${onInputEvt}" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:border-[#0f172a] focus:bg-white focus:ring-1 focus:ring-[#0f172a] transition text-sm font-medium h-48 resize-y shadow-inner" placeholder="${lang.esaiHolder}">${ans}</textarea>
+                </div>`;
             }
+            
 
             container.innerHTML = html;
             if(!isPreview) updatePaletteStyleSiswa();
@@ -2603,7 +2776,10 @@
                     else if(soal.jenis === 'PGK' && Array.isArray(ans) && ans.length > 0) isAnswered = true;
                     else if(soal.jenis === 'BS' && typeof ans === 'object' && Object.keys(ans).length === (soal.pernyataan||[]).length) isAnswered = true;
                     else if(soal.jenis === 'JODOH' && typeof ans === 'object' && Object.keys(ans).length === (soal.kiri||[]).length) isAnswered = true;
-                    else if(soal.jenis === 'ESAI' && typeof ans === 'string' && ans.trim() !== '') isAnswered = true;
+                    else if(soal.jenis === 'ESAI' && typeof ans === 'string' && ans.trim() !== '') {
+                        const minK = parseInt(soal.minKata) || 0;
+                        isAnswered = minK > 0 ? (hitungJumlahKata(ans) >= minK) : true;
+                    }
                 }
                 btn.className = 'w-full aspect-square flex items-center justify-center rounded-xl font-bold text-xs transition-all duration-200 border-2 shadow-sm';
                 if (isCurrent) btn.classList.add('ring-2', 'ring-indigo-400', 'ring-offset-1');
@@ -2886,23 +3062,31 @@
             
             const now = getRealTime(); // ANTI-CHEAT CEK TOMBOL SELESAI
             
-            // Mengambil jam asli jadwal ujian dimulai (Misal: 07.00)
             const jadwalMulaiPaket = new Date(activePaket.waktuMulai); 
             const minMenit = activePaket.minWaktu !== undefined && activePaket.minWaktu !== "" ? parseInt(activePaket.minWaktu) : 30;
-            
-            // ATURAN MUTLAK: Waktu Boleh Selesai = Jadwal Mulai Ujian + Min. Pengerjaan
             const waktuBolehSelesai = new Date(jadwalMulaiPaket.getTime() + (minMenit * 60000));
             
-            // Jika jam HP siswa saat ini masih KURANG DARI jam boleh selesai
             if (now < waktuBolehSelesai) {
                 const sisaTungguDetik = Math.floor((waktuBolehSelesai - now) / 1000);
                 const sisaMenit = Math.ceil(sisaTungguDetik / 60);
-                
-                // Format jam untuk notifikasi (Contoh: 08.00 WIB)
                 const jamBuka = waktuBolehSelesai.toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace(':', '.') + ' WIB';
-                
                 showToast(`Tombol Selesai terbuka serentak pukul ${jamBuka} (Tunggu ${sisaMenit} mnt)`, "error");
                 return;
+            }
+
+            // --- FITUR BARU: VALIDASI MINIMAL KATA ESAI ---
+            for (let i = 0; i < soalSiswa.length; i++) {
+                const s = soalSiswa[i];
+                if (s.jenis === 'ESAI' && parseInt(s.minKata) > 0) {
+                    const ans = jawabanSiswa[s.id] || '';
+                    const jmlKata = hitungJumlahKata(ans);
+                    if (jmlKata < parseInt(s.minKata)) {
+                        currentIndex = i;
+                        renderSoalSiswa('soal-content-area', false);
+                        showToast(`Soal No. ${i + 1} (Uraian) wajib diisi minimal ${s.minKata} kata! (Baru tertulis ${jmlKata} kata)`, "error");
+                        return;
+                    }
+                }
             }
 
             document.getElementById('modal-confirm').classList.remove('hidden'); 
@@ -3236,7 +3420,10 @@
                 
                 // Refresh komponen UI yang kebetulan sedang dibuka saja (Seamless Update)
                 if(!document.getElementById('tab-token').classList.contains('hidden')) renderFormToken();
-                if(!document.getElementById('tab-dashboard').classList.contains('hidden')) renderDashboardAdmin();
+                if(!document.getElementById('tab-dashboard').classList.contains('hidden')) {
+                    isDashFilterInit = false; // Refresh Opsi Filter
+                    renderDashboardAdmin();
+                }
                 if(!document.getElementById('tab-anggota').classList.contains('hidden')) renderTableAnggota();
                 
                 // Refresh Pintar untuk Tab Hasil (Agar Admin tidak terlempar ke layar awal saat membuka detail kelas)
@@ -3278,30 +3465,276 @@
 
         // --- DASHBOARD ADMIN ---
         let chartNilaiInst, chartPartInst;
+        let isDashFilterInit = false; // Penanda agar opsi filter tidak keriset terus
+
         function renderDashboardAdmin() {
             const isGuru = sessionUser.role === 'admin';
             const myMapel = isGuru ? sessionUser.mapel : null;
-            
-            const pktAktif = isGuru ? dbPaket.filter(p => p.mapel === myMapel) : dbPaket;
-            const hslAktif = isGuru ? dbHasil.filter(h => h.mapel === myMapel) : dbHasil;
-            const soalAktif = isGuru ? dbSoal.filter(s => pktAktif.some(p => p.id === s.paketId)) : dbSoal;
 
-            document.getElementById('stat-siswa').textContent = dbSiswa.length;
+            const selTanggal = document.getElementById('dashFilterTanggal');
+            const selMapel = document.getElementById('dashFilterMapel');
+            const selPaket = document.getElementById('dashFilterPaket');
+
+            // Ambil tanggal hari ini (Waktu Lokal)
+            const now = new Date();
+            const todayStr = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+
+            // 1. INISIALISASI TANGGAL, MAPEL, & DROPDOWN KELAS PERTAMA KALI SAJA
+            if (!isDashFilterInit) {
+                // Setup TANGGAL
+                let pktAll = isGuru ? dbPaket.filter(p => p.mapel === myMapel) : dbPaket;
+                const uniqueDates = [...new Set(pktAll.map(p => {
+                    if(!p.waktuMulai) return "";
+                    const d = new Date(p.waktuMulai);
+                    return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                }).filter(d => d !== ""))].sort((a,b) => new Date(a) - new Date(b));
+
+                if (!uniqueDates.includes(todayStr)) {
+                    uniqueDates.push(todayStr);
+                    uniqueDates.sort((a,b) => new Date(a) - new Date(b));
+                }
+
+                let optHTMLTanggal = '<option value="all">Semua Tanggal Ujian</option>';
+                uniqueDates.forEach(dateStr => {
+                    const d = new Date(dateStr);
+                    const displayDate = d.toLocaleString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
+                    const isHariIni = dateStr === todayStr ? " (Hari Ini)" : "";
+                    optHTMLTanggal += `<option value="${dateStr}">${displayDate}${isHariIni}</option>`;
+                });
+                selTanggal.innerHTML = optHTMLTanggal;
+                selTanggal.value = todayStr; // Default hari ini
+
+                // Setup MAPEL
+                if (isGuru) {
+                    selMapel.innerHTML = `<option value="${myMapel}">${myMapel}</option>`;
+                    selMapel.disabled = true;
+                    selMapel.classList.add('bg-slate-100', 'cursor-not-allowed', 'text-slate-400');
+                } else {
+                    const uniqueMapel = [...new Set(dbPaket.map(p => p.mapel))].sort();
+                    let htmlMapel = '<option value="all">Semua Mata Pelajaran</option>';
+                    uniqueMapel.forEach(m => {
+                        if(m) htmlMapel += `<option value="${m}">${m}</option>`;
+                    });
+                    selMapel.innerHTML = htmlMapel;
+                }
+
+                // Setup KELAS (Custom Multi-select Checkbox)
+                const uniqueClasses = [...new Set(dbSiswa.map(s => s.kelas))].sort();
+                const kelasDrop = document.getElementById('dashKelasDropdown');
+                let htmlKelas = `
+                    <label class="flex items-center gap-3 p-2.5 hover:bg-slate-100 rounded-lg cursor-pointer border-b border-slate-100 transition mb-1">
+                        <input type="checkbox" id="dash-chk-kelas-all" checked onchange="toggleDashAllKelas(this)" class="w-4 h-4 text-amber-500 rounded accent-amber-500 cursor-pointer">
+                        <span class="text-xs font-black text-amber-600">Pilih Semua Kelas</span>
+                    </label>
+                `;
+                uniqueClasses.forEach(c => {
+                    htmlKelas += `
+                    <label class="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition">
+                        <input type="checkbox" value="${c}" checked onchange="toggleDashKelasItem()" class="dash-chk-kelas-item w-4 h-4 text-indigo-600 rounded accent-indigo-600 cursor-pointer">
+                        <span class="text-xs font-bold text-slate-600">${c}</span>
+                    </label>`;
+                });
+                kelasDrop.innerHTML = htmlKelas;
+
+                // Event listener khusus agar dropdown kelas tertutup saat klik tempat lain
+                document.addEventListener('click', function(e) {
+                    const container = document.getElementById('dashFilterKelasContainer');
+                    const dropdown = document.getElementById('dashKelasDropdown');
+                    if (container && dropdown && !container.contains(e.target)) {
+                        dropdown.classList.add('hidden');
+                    }
+                });
+
+                isDashFilterInit = true;
+            }
+
+            const selectedTanggal = selTanggal.value;
+            const selectedMapel = selMapel.value;
+            
+            // Logika Pembacaan Filter Kelas
+            const isAllKelas = document.getElementById('dash-chk-kelas-all').checked;
+            const selectedClasses = Array.from(document.querySelectorAll('.dash-chk-kelas-item:checked')).map(cb => cb.value);
+
+            // 2. UPDATE DROPDOWN PAKET (Berdasarkan Tgl & Mapel)
+            let mapelPaket = dbPaket;
+            if (selectedMapel !== 'all') { mapelPaket = mapelPaket.filter(p => p.mapel === selectedMapel); }
+            if (selectedTanggal !== 'all') {
+                mapelPaket = mapelPaket.filter(p => {
+                    if(!p.waktuMulai) return false;
+                    const d = new Date(p.waktuMulai);
+                    const tzDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    return tzDate === selectedTanggal;
+                });
+            }
+
+            const currentPaketVal = selPaket.value;
+            let htmlPaket = '<option value="all">Semua Paket Ujian Tersedia</option>';
+            mapelPaket.forEach(p => { htmlPaket += `<option value="${p.id}">${p.nama}</option>`; });
+            selPaket.innerHTML = htmlPaket;
+
+            if (currentPaketVal && Array.from(selPaket.options).some(o => o.value === currentPaketVal)) {
+                selPaket.value = currentPaketVal;
+            } else {
+                selPaket.value = 'all';
+            }
+
+            const selectedPaket = selPaket.value;
+
+            // 3. FILTER DATA KARTU STATISTIK & GRAFIK (Gabungan Mapel, Paket, Tgl, dan KELAS)
+            let pktAktif = mapelPaket; 
+            if (selectedPaket !== 'all') { pktAktif = pktAktif.filter(p => String(p.id) === selectedPaket); }
+
+            let hslAktif = dbHasil.filter(h => pktAktif.some(p => p.id === h.paketId));
+            let soalAktif = dbSoal.filter(s => pktAktif.some(p => p.id === s.paketId));
+
+            // Potong data hasil yang TIDAK ADA dalam centangan filter Kelas
+            if (!isAllKelas) {
+                hslAktif = hslAktif.filter(h => selectedClasses.includes(h.kelas));
+            }
+
+            // Menghitung Target Siswa yang WAJIB ikut ujian & Cocok dengan filter Kelas
+            let targetSet = new Set();
+            pktAktif.forEach(p => {
+                const tkArr = Array.isArray(p.targetKelas) ? p.targetKelas : [p.targetKelas || 'ALL'];
+                dbSiswa.forEach(s => {
+                    const isTargetPaket = tkArr.includes('ALL') || tkArr.includes('SEMUA') || tkArr.includes(s.kelas);
+                    const isFilterKelasMatch = isAllKelas || selectedClasses.includes(s.kelas);
+                    
+                    if (isTargetPaket && isFilterKelasMatch) {
+                        targetSet.add(s.id);
+                    }
+                });
+            });
+
+            const targetedSiswaList = dbSiswa.filter(s => targetSet.has(s.id));
+            const targetSiswaCount = targetedSiswaList.length;
+            
+            // Labeling Grafiknya
+            let partisipasiLabel = 'Selesai Dikerjakan';
+            if (selectedPaket !== 'all') {
+                partisipasiLabel = `Selesai (${pktAktif[0]?.nama.substring(0,12)}...)`;
+            } else if (selectedMapel !== 'all') {
+                partisipasiLabel = `Selesai (${selectedMapel})`;
+            }
+
+            // A. Update Teks Kotak Atas
+            document.getElementById('stat-siswa').textContent = targetSiswaCount;
             document.getElementById('stat-selesai').textContent = hslAktif.length;
             document.getElementById('stat-soal').textContent = soalAktif.length;
 
-            const cls = [...new Set(dbSiswa.map(s => s.kelas))].sort();
-            const rata = cls.map(k => { const h = hslAktif.filter(x => x.kelas === k); return h.length ? (h.reduce((s, x)=>s+x.skor,0)/h.length) : 0; });
+            // B. CHART 1: Rata-rata Kelas 
+            const cls = isAllKelas ? [...new Set(targetedSiswaList.map(s => s.kelas))].sort() : [...selectedClasses].sort();
+            const rata = cls.map(k => { 
+                const h = hslAktif.filter(x => x.kelas === k); 
+                return h.length ? (h.reduce((s, x)=>s+x.skor,0)/h.length) : 0; 
+            });
             
             if(chartNilaiInst) chartNilaiInst.destroy();
-            chartNilaiInst = new Chart(document.getElementById('chartNilai'), { type: 'bar', data: { labels: cls, datasets: [{label: 'Rata-rata', data: rata, backgroundColor: '#4f46e5', borderRadius: 6}] }, options: {responsive: true, maintainAspectRatio: false} });
+            chartNilaiInst = new Chart(document.getElementById('chartNilai'), { 
+                type: 'bar', 
+                data: { labels: cls, datasets: [{label: 'Rata-rata Nilai', data: rata, backgroundColor: '#4f46e5', borderRadius: 6}] }, 
+                options: {responsive: true, maintainAspectRatio: false} 
+            });
 
+            // C. CHART 2: Partisipasi (Donut)
             let partisipanSelesai = new Set(hslAktif.map(h => h.siswaId)).size;
-            let blm = dbSiswa.length - partisipanSelesai;
+            let blmCount = targetSiswaCount - partisipanSelesai;
+            if (blmCount < 0) blmCount = 0;
+
             if(chartPartInst) chartPartInst.destroy();
-            chartPartInst = new Chart(document.getElementById('chartPartisipasi'), { type: 'doughnut', data: { labels: ['Sudah (Berdasarkan Mapel)', 'Belum'], datasets: [{data: [partisipanSelesai, blm], backgroundColor: ['#10b981', '#f43f5e'], borderWidth:0}] }, options: {responsive: true, maintainAspectRatio: false, cutout:'75%'} });
+            chartPartInst = new Chart(document.getElementById('chartPartisipasi'), { 
+                type: 'doughnut', 
+                data: { 
+                    labels: [partisipasiLabel, 'Belum Mengerjakan'], 
+                    datasets: [{data: [partisipanSelesai, blmCount], backgroundColor: ['#10b981', '#f43f5e'], borderWidth:0}] 
+                }, 
+                options: {responsive: true, maintainAspectRatio: false, cutout:'75%'} 
+            });
+
+            // --- 4. RENDER TABEL: SISWA BELUM UJIAN ---
+            const tbodyBelum = document.getElementById('tbody-dash-belum-ujian');
+            if (tbodyBelum) {
+                tbodyBelum.innerHTML = '';
+                let belumList = [];
+
+                // Cek silang (Siswa Target Filter vs Paket Aktif Filter)
+                targetedSiswaList.forEach(s => {
+                    let paketBelumPribadi = [];
+                    
+                    pktAktif.forEach(p => {
+                        const tkArr = Array.isArray(p.targetKelas) ? p.targetKelas : [p.targetKelas || 'ALL'];
+                        const isSiswaTarget = tkArr.includes('ALL') || tkArr.includes('SEMUA') || tkArr.includes(s.kelas);
+                        
+                        if (isSiswaTarget) {
+                            const isDone = hslAktif.some(h => String(h.siswaId) === String(s.id) && h.paketId === p.id);
+                            if (!isDone) paketBelumPribadi.push(p.nama);
+                        }
+                    });
+
+                    if (paketBelumPribadi.length > 0) {
+                        belumList.push({ siswa: s, paketTertunda: paketBelumPribadi });
+                    }
+                });
+
+                document.getElementById('badge-belum-ujian').textContent = `${belumList.length} Siswa Mangkir`;
+
+                if (belumList.length === 0) {
+                    if (pktAktif.length === 0 || selectedClasses.length === 0) {
+                        tbodyBelum.innerHTML = '<tr><td colspan="3" class="p-8 text-center text-slate-400 font-medium bg-slate-50 rounded-xl border border-dashed border-slate-300">Tidak ada data untuk filter saat ini.</td></tr>';
+                    } else {
+                        tbodyBelum.innerHTML = '<tr><td colspan="3" class="p-8 text-center text-emerald-500 font-black bg-emerald-50 rounded-xl border border-emerald-100 shadow-inner">🎉 Luar biasa! Semua siswa dari kelas yang dipilih telah menyelesaikan ujian ini.</td></tr>';
+                    }
+                } else {
+                    belumList.sort((a,b) => a.siswa.kelas.localeCompare(b.siswa.kelas) || a.siswa.nama.localeCompare(b.siswa.nama));
+                    belumList.forEach(item => {
+                        const pktHTML = item.paketTertunda.map(namaP => `<span class="bg-rose-50 text-rose-600 border border-rose-100 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider shadow-sm mb-1 inline-block mr-1"><i class="fas fa-times mr-1"></i> ${namaP}</span>`).join('');
+                        tbodyBelum.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                            <td class="p-4 align-top">
+                                <span class="font-bold text-slate-700 text-sm block">${item.siswa.nama}</span>
+                                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">${item.siswa.username}</span>
+                            </td>
+                            <td class="p-4 text-center align-top">
+                                <span class="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-[11px] font-bold border border-slate-200">${item.siswa.kelas}</span>
+                            </td>
+                            <td class="p-4 align-top">${pktHTML}</td>
+                        </tr>`;
+                    });
+                }
+            }
         }
 
+        // Action Handlers
+        window.changeDashTanggal = function() { document.getElementById('dashFilterPaket').value = 'all'; renderDashboardAdmin(); };
+        window.changeDashMapel = function() { document.getElementById('dashFilterPaket').value = 'all'; renderDashboardAdmin(); };
+        window.changeDashPaket = function() { renderDashboardAdmin(); };
+
+        // Fitur Handle Multi Checkbox Kelas
+        window.toggleDashAllKelas = function(el) {
+            const checkboxes = document.querySelectorAll('.dash-chk-kelas-item');
+            checkboxes.forEach(cb => cb.checked = el.checked);
+            updateDashKelasText();
+            renderDashboardAdmin();
+        };
+
+        window.toggleDashKelasItem = function() {
+            const checkboxes = document.querySelectorAll('.dash-chk-kelas-item');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            document.getElementById('dash-chk-kelas-all').checked = allChecked;
+            updateDashKelasText();
+            renderDashboardAdmin();
+        };
+
+        function updateDashKelasText() {
+            const checkboxes = document.querySelectorAll('.dash-chk-kelas-item:checked');
+            const textEl = document.getElementById('dashKelasText');
+            if (checkboxes.length === 0 || document.getElementById('dash-chk-kelas-all').checked) {
+                textEl.textContent = 'Semua Kelas';
+            } else {
+                const names = Array.from(checkboxes).map(cb => cb.value);
+                textEl.textContent = names.length > 2 ? `${names.slice(0,2).join(', ')}... (+${names.length-2})` : names.join(', ');
+            }
+        }
         // --- ADMIN HASIL: MASTER TABEL & HIERARKI ---
         let tempKelasHasil = null; let tempPaketHasil = null;
         let currentPageHasil = 1;
@@ -3841,6 +4274,167 @@
             }
         }
 
+        // --- FITUR BARU: ANALISIS BUTIR SOAL ---
+        let chartAnalisisInst = null;
+
+        function bukaAnalisisSoal() {
+            if (!tempPaketHasil || !tempKelasHasil) return showToast("Pilih data paket dan kelas terlebih dahulu", "error");
+
+            const paketId = tempPaketHasil.id;
+            const kelas = tempKelasHasil;
+
+            document.getElementById('analisis-subtitle').textContent = `${tempPaketHasil.nama} • Kelas ${kelas}`;
+
+            // 1. Ambil Siswa, Hasil, dan Soal yang relevan
+            const hslKelas = dbHasil.filter(h => String(h.paketId) === String(paketId) && h.kelas === kelas);
+            const soalPkt = dbSoal.filter(s => String(s.paketId) === String(paketId));
+
+            if (hslKelas.length === 0) {
+                return showToast("Belum ada siswa di kelas ini yang mengerjakan ujian.", "error");
+            }
+            if (soalPkt.length === 0) {
+                return showToast("Paket ini tidak memiliki data soal.", "error");
+            }
+
+            document.getElementById('analisis-total-peserta').textContent = `${hslKelas.length} Terkumpul`;
+
+            // 2. Siapkan wadah struktur data analisis per nomor soal
+            let dataAnalisis = soalPkt.map((s, idx) => {
+                return {
+                    no: idx + 1,
+                    soalId: s.id,
+                    jenis: s.jenis,
+                    teks: s.teks,
+                    benarArr: [],
+                    salahArr: []
+                };
+            });
+
+            // 3. Mesin Pengecek Jawaban
+            hslKelas.forEach(hsl => {
+                const namaSiswa = hsl.nama;
+                
+                dataAnalisis.forEach(item => {
+                    const s = soalPkt.find(x => x.id === item.soalId);
+                    const ans = hsl.detail[s.id];
+                    let isBenar = false;
+
+                    // Logika Penilaian (Toleransi: Jika poin > 50% dari skor maksimal, masuk kategori Benar/Tuntas)
+                    if (ans !== undefined && ans !== null) {
+                        if (s.jenis === 'PG') {
+                            if (ans === s.jawabanBenar[0]) isBenar = true;
+                        } 
+                        else if (s.jenis === 'PGK' && Array.isArray(ans) && Array.isArray(s.jawabanBenar)) {
+                            // PGK Mutlak (Harus betul semua baru dihitung benar penuh)
+                            const isAllCorrect = ans.length === s.jawabanBenar.length && ans.every(val => s.jawabanBenar.includes(val));
+                            if (isAllCorrect) isBenar = true;
+                        } 
+                        else if (s.jenis === 'BS' && typeof ans === 'object') {
+                            let c = 0;
+                            (s.pernyataan || []).forEach((p, i) => { if (ans[i] === p.kunci) c++; });
+                            if (c >= Math.ceil(s.pernyataan.length / 2)) isBenar = true; // Benar lebih dari separuh = Masuk list hijau
+                        } 
+                        else if (s.jenis === 'JODOH' && typeof ans === 'object') {
+                            let c = 0;
+                            const keys = Object.keys(s.kunciJodoh || {});
+                            keys.forEach(k => { if (ans[k] === s.kunciJodoh[k]) c++; });
+                            if (c >= Math.ceil(keys.length / 2)) isBenar = true;
+                        }
+                    }
+                    if (s.jenis === 'ESAI' && hsl.koreksiEsai && hsl.koreksiEsai[s.id] !== undefined) {
+                        if (hsl.koreksiEsai[s.id] >= 50) isBenar = true; // Jika guru kasih nilai di atas 50
+                    }
+
+                    // Masukkan nama siswa ke keranjang yang sesuai
+                    if (isBenar) item.benarArr.push(namaSiswa);
+                    else item.salahArr.push(namaSiswa); // Kosong/Salah masuk ke sini
+                });
+            });
+
+            // 4. Siapkan Data untuk Grafik (Chart.js)
+            const labels = dataAnalisis.map(item => `No. ${item.no}`);
+            const dataBenar = dataAnalisis.map(item => item.benarArr.length);
+            const dataSalah = dataAnalisis.map(item => item.salahArr.length);
+
+            if (chartAnalisisInst) chartAnalisisInst.destroy();
+            const ctx = document.getElementById('chartAnalisis').getContext('2d');
+            chartAnalisisInst = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Menjawab Benar (Tuntas)', data: dataBenar, backgroundColor: '#10b981', borderRadius: 4 },
+                        { label: 'Menjawab Salah / Kosong', data: dataSalah, backgroundColor: '#f43f5e', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { font: { weight: 'bold' } } }
+                    }
+                }
+            });
+
+            // 5. Render Daftar Accordion Rincian Nama Siswa
+            const container = document.getElementById('analisis-list-container');
+            container.innerHTML = '';
+
+            dataAnalisis.forEach(item => {
+                // Pembersihan HTML tag (Bila soal mengandung bold/gambar dll)
+                let divTeks = document.createElement("div"); divTeks.innerHTML = item.teks;
+                let plainTeks = divTeks.textContent || divTeks.innerText || "";
+                let shortTeks = plainTeks.length > 80 ? plainTeks.substring(0,80) + '...' : plainTeks;
+
+                const btnBenarHtml = item.benarArr.map(n => `<span class="inline-block bg-emerald-50 border border-emerald-100 text-emerald-700 px-2.5 py-1 rounded-md text-[10px] m-0.5 font-bold shadow-sm">${n}</span>`).join('');
+                const btnSalahHtml = item.salahArr.map(n => `<span class="inline-block bg-rose-50 border border-rose-100 text-rose-700 px-2.5 py-1 rounded-md text-[10px] m-0.5 font-bold shadow-sm">${n}</span>`).join('');
+
+                const rasioSalah = hslKelas.length > 0 ? Math.round((item.salahArr.length / hslKelas.length) * 100) : 0;
+                // Indikator Soal Sulit (Jika lebih dari 50% siswa salah, beri highlight merah)
+                const isSulit = rasioSalah > 50; 
+                const bgWarning = isSulit ? 'bg-rose-50 border-rose-200' : 'bg-slate-50 border-slate-100';
+                const tagWarning = isSulit ? `<span class="text-[9px] font-black uppercase bg-rose-500 text-white px-2 py-0.5 rounded shadow-sm flex items-center gap-1 animate-pulse"><i class="fas fa-exclamation-triangle"></i> Soal Sulit</span>` : '';
+
+                container.innerHTML += `
+                <div class="bg-white border border-slate-200 rounded-[1.25rem] shadow-sm overflow-hidden group">
+                    <div class="p-4 ${bgWarning} flex justify-between items-center cursor-pointer hover:bg-slate-100 transition border-b" onclick="document.getElementById('analisis-body-${item.no}').classList.toggle('hidden')">
+                        <div class="flex items-center gap-4 w-full">
+                            <div class="w-10 h-10 ${isSulit ? 'bg-rose-100 text-rose-600' : 'bg-[#0f172a] text-white'} rounded-xl flex items-center justify-center font-black flex-shrink-0 shadow-inner">${item.no}</div>
+                            <div class="flex-grow">
+                                <div class="flex flex-wrap items-center gap-2 mb-1">
+                                    <span class="text-[9px] font-black uppercase bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200">${item.jenis}</span>
+                                    <span class="text-[10px] font-bold text-slate-600">Kesalahan: <span class="${isSulit ? 'text-red-600 font-black' : 'text-slate-600'}">${rasioSalah}%</span></span>
+                                    ${tagWarning}
+                                </div>
+                                <p class="text-xs text-slate-600 font-medium truncate max-w-[200px] sm:max-w-md">${shortTeks || '<i>Soal Gambar / Spesifik</i>'}</p>
+                            </div>
+                            <i class="fas fa-chevron-down text-slate-400 group-hover:text-indigo-500 transition-colors pr-2"></i>
+                        </div>
+                    </div>
+                    
+                    <div id="analisis-body-${item.no}" class="hidden p-5 grid grid-cols-1 md:grid-cols-2 gap-5 bg-slate-50/50">
+                        <div class="border border-emerald-200 rounded-[1rem] p-4 bg-white shadow-sm relative overflow-hidden">
+                            <div class="absolute left-0 top-0 w-1 h-full bg-emerald-500"></div>
+                            <h5 class="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-3 flex items-center gap-1.5 border-b border-emerald-100 pb-2"><i class="fas fa-check-circle"></i> Menjawab Benar / Tuntas (${item.benarArr.length})</h5>
+                            <div class="max-h-40 overflow-y-auto pr-1 custom-scrollbar">${btnBenarHtml || '<span class="text-xs text-slate-400 font-medium italic">Tidak ada siswa</span>'}</div>
+                        </div>
+                        <div class="border border-rose-200 rounded-[1rem] p-4 bg-white shadow-sm relative overflow-hidden">
+                            <div class="absolute left-0 top-0 w-1 h-full bg-rose-500"></div>
+                            <h5 class="text-[10px] font-black uppercase tracking-widest text-rose-600 mb-3 flex items-center gap-1.5 border-b border-rose-100 pb-2"><i class="fas fa-times-circle"></i> Menjawab Salah / Kosong (${item.salahArr.length})</h5>
+                            <div class="max-h-40 overflow-y-auto pr-1 custom-scrollbar">${btnSalahHtml || '<span class="text-xs text-slate-400 font-medium italic">Tidak ada siswa</span>'}</div>
+                        </div>
+                    </div>
+                </div>
+                `;
+            });
+
+            document.getElementById('modal-analisis-soal').classList.remove('hidden');
+        }
+
         // --- STREAMING_CHUNK:PDF Rendering Engine... ---
         // --- STREAMING_CHUNK:PDF Rendering Engine... ---
         // FUNGSI 1: PEMBUAT STRING HTML UNTUK PDF (KOP AL AZHAR 15 + FULL REVIEW SOAL & OPSI)
@@ -4138,13 +4732,29 @@
                         </div>`;
                 }
                 // 5. ESAI / URAIAN
+                // 5. ESAI / URAIAN
                 else if (s.jenis === 'ESAI') {
                     maxPoin = 100;
                     const stuAns = ans || '-'; 
-                    poinSoal = (hsl.koreksiEsai && hsl.koreksiEsai[s.id]) ? hsl.koreksiEsai[s.id] : 0;
+                    const jmlKataSiswa = ans ? hitungJumlahKata(ans) : 0;
+                    const infoTargetKata = (s.minKata && s.minKata > 0) ? `${jmlKataSISSN = jmlKataSiswa} / Min. ${s.minKata} Kata` : `${jmlKataSiswa} Kata`;
+
+                    poinSoal = (hsl.koreksiEsai && hsl.koreksiEsai[s.id] !== undefined) ? hsl.koreksiEsai[s.id] : 0;
+                    const sudahDikoreksi = (hsl.koreksiEsai && hsl.koreksiEsai[s.id] !== undefined);
+                    
                     detailHtml = `
-                        <div class="mt-2 border border-black p-3 rounded">
-                            <p class="font-bold text-xs uppercase mb-1 border-b border-black pb-1 text-slate-500">Jawaban Uraian Siswa:</p>
+                        <div class="mt-2 border border-black p-3 rounded ${sudahDikoreksi ? 'bg-emerald-50/20' : 'bg-amber-50/30'}">
+                            <div class="flex flex-wrap justify-between items-center border-b border-black pb-1.5 mb-2 gap-2">
+                                <p class="font-bold text-xs uppercase text-slate-500">
+                                    Jawaban Uraian Siswa (${infoTargetKata}): 
+                                    <span class="${sudahDikoreksi ? 'text-emerald-600' : 'text-amber-600'} ml-1">
+                                        ${sudahDikoreksi ? `(Sudah Dinilai: ${poinSoal}/100)` : '(Belum Dikoreksi)'}
+                                    </span>
+                                </p>
+                                <button type="button" data-html2canvas-ignore="true" onclick="bukaKoreksiEsai('${hsl.id}', '${s.id}')" class="bg-amber-500 hover:bg-amber-600 text-white font-sans font-bold text-[11px] px-3 py-1.5 rounded-lg shadow-sm transition flex items-center gap-1.5 cursor-pointer active:scale-95">
+                                    <i class="fas fa-marker"></i> ${sudahDikoreksi ? 'Ubah Nilai' : 'Beri Nilai'}
+                                </button>
+                            </div>
                             <p class="text-sm mt-2 whitespace-pre-wrap font-serif text-slate-800">${stuAns}</p>
                         </div>`;
                 }
@@ -4193,19 +4803,59 @@
 
         // --- KOREKSI ESAI ---
         function bukaKoreksiEsai(hasilId, soalId) {
-            const hsl = dbHasil.find(h => h.id === hasilId);
-            const currentNilai = (hsl.koreksiEsai && hsl.koreksiEsai[soalId]) ? hsl.koreksiEsai[soalId] : 0;
-            document.getElementById('koreksi-hasil-id').value = hasilId; document.getElementById('koreksi-soal-id').value = soalId; document.getElementById('input-nilai-esai').value = currentNilai;
+            const hsl = dbHasil.find(h => String(h.id) === String(hasilId));
+            if (!hsl) return;
+            
+            const currentNilai = (hsl.koreksiEsai && hsl.koreksiEsai[soalId] !== undefined) ? hsl.koreksiEsai[soalId] : 0;
+            document.getElementById('koreksi-hasil-id').value = hasilId; 
+            document.getElementById('koreksi-soal-id').value = soalId; 
+            document.getElementById('input-nilai-esai').value = currentNilai;
             document.getElementById('modal-koreksi-esai').classList.remove('hidden');
+            
+            // Otomatis fokus & blok angka di input agar guru bisa langsung mengetik nilai
+            setTimeout(() => {
+                const inp = document.getElementById('input-nilai-esai');
+                if(inp) { inp.focus(); inp.select(); }
+            }, 100);
         }
-        function tutupKoreksiEsai() { document.getElementById('modal-koreksi-esai').classList.add('hidden'); }
+
+        function tutupKoreksiEsai() { 
+            document.getElementById('modal-koreksi-esai').classList.add('hidden'); 
+        }
+
         function simpanNilaiEsai() {
-            const hasilId = parseInt(document.getElementById('koreksi-hasil-id').value); const soalId = parseInt(document.getElementById('koreksi-soal-id').value); const nilaiBaru = parseInt(document.getElementById('input-nilai-esai').value);
-            if(isNaN(nilaiBaru) || nilaiBaru < 0 || nilaiBaru > 100) return showToast("Nilai harus 0-100", "error");
-            const hsl = dbHasil.find(h => h.id === hasilId);
-            if(!hsl.koreksiEsai) hsl.koreksiEsai = {}; hsl.koreksiEsai[soalId] = nilaiBaru;
-            hsl.skor = hitungSkorTotal(hsl); fetchGAS("simpanHasil", hsl);
-            tutupKoreksiEsai(); lihatDetailPDF(hasilId); bukaDetailHasilPaket(hsl.paketId); showToast("Nilai Esai & Skor Akhir diperbarui!", "success");
+            const hasilId = document.getElementById('koreksi-hasil-id').value; 
+            const soalId = document.getElementById('koreksi-soal-id').value; // Jangan di-parseInt karena ID soal berformat 'S_...'
+            const nilaiBaru = parseInt(document.getElementById('input-nilai-esai').value);
+            
+            if(isNaN(nilaiBaru) || nilaiBaru < 0 || nilaiBaru > 100) {
+                return showToast("Nilai harus berada di rentang 0 - 100", "error");
+            }
+            
+            const hsl = dbHasil.find(h => String(h.id) === String(hasilId));
+            if (!hsl) return showToast("Data hasil ujian tidak ditemukan!", "error");
+
+            if(!hsl.koreksiEsai) hsl.koreksiEsai = {}; 
+            hsl.koreksiEsai[soalId] = nilaiBaru;
+            
+            // Jeda auto-sync 10 detik agar tidak tertimpa data lama dari server saat proses simpan
+            pauseSyncUntil = Date.now() + 10000;
+
+            // Hitung ulang skor akhir skala 100 dan kirim ke Google Spreadsheet
+            hsl.skor = hitungSkorTotal(hsl); 
+            fetchGAS("simpanHasil", hsl);
+            
+            tutupKoreksiEsai(); 
+            lihatDetailPDF(hasilId); // Refresh lembar jawaban PDF yang sedang terbuka
+            
+            // Refresh tabel di belakang layar (baik Tabel Per Kelas maupun Tabel Master Global)
+            if (!document.getElementById('panel-detail-hasil').classList.contains('hidden') && tempPaketHasil) {
+                bukaDetailHasilPaket(hsl.paketId);
+            } else {
+                renderTingkatKelasHasil();
+            }
+            
+            showToast("Nilai Uraian & Skor Akhir berhasil disimpan!", "success");
         }
         function tutupModalPDF() { document.getElementById('modal-pdf').classList.add('hidden'); }
         function downloadPDF() { 
@@ -5168,14 +5818,20 @@
                        </div>` 
                     : '';
 
+                // Definisikan badge minimal kata untuk soal esai
+                const badgeMinKata = (s.jenis === 'ESAI' && parseInt(s.minKata) > 0) 
+                    ? `<span class="text-[9px] font-bold bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded ml-1 shadow-sm"><i class="fas fa-align-left mr-1"></i>Min. ${s.minKata} Kata</span>` 
+                    : '';
+
                 list.innerHTML += `
                 <div class="bg-white border border-slate-200 rounded-[1.5rem] p-5 flex items-center justify-between gap-4 shadow-sm hover:shadow-md transition group">
                     <div class="flex gap-4 items-start w-full overflow-hidden">
                         <div class="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center font-black text-slate-500 text-sm flex-shrink-0 group-hover:bg-[#0f172a] group-hover:text-white group-hover:border-[#0f172a] transition-colors shadow-inner">${idx+1}</div>
                         <div class="flex-grow">
-                            <span class="text-[9px] font-black uppercase bg-indigo-50 border border-indigo-100 text-indigo-600 px-2 py-0.5 rounded tracking-widest inline-block mb-1.5 shadow-sm">${s.jenis}</span>
-                            <p class="text-sm font-medium text-slate-700 leading-relaxed">${txt}</p>
-                            ${imgThumbnail} <!-- Thumbnail Gambar Disuntikkan Di Sini -->
+                            <div class="mb-1.5 flex items-center">
+                                <span class="text-[9px] font-black uppercase bg-indigo-50 border border-indigo-100 text-indigo-600 px-2 py-0.5 rounded tracking-widest inline-block shadow-sm">${s.jenis}</span>${badgeMinKata}
+                            </div>
+                            <p class="text-sm font-medium text-slate-700 leading-relaxed">${txt}</p>${imgThumbnail} <!-- Thumbnail Gambar Disuntikkan Di Sini -->
                         </div>
                     </div>
                     <div class="flex gap-2 flex-shrink-0 bg-slate-50 p-1.5 rounded-xl border border-slate-200 shadow-inner">
@@ -5437,6 +6093,7 @@
             mainEditor.root.innerHTML = '';
 
             changeJenisSoal();
+            if(document.getElementById('edit-min-kata-esai')) document.getElementById('edit-min-kata-esai').value = 0;
             if(document.getElementById('edit-jenis-soal').value === 'BS') { addBSRow(); addBSRow(); addBSRow(); addBSRow(); }
             if(document.getElementById('edit-jenis-soal').value === 'JODOH') { for(let i=0; i<4; i++) { addJodohRow('kiri'); addJodohRow('kanan'); } }
             document.getElementById('modal-form-soal').classList.remove('hidden');
@@ -5490,6 +6147,12 @@
                         });
                         syncJodohOptions();
                     }, 50);
+                } 
+                // ---> TAMBAHKAN 5 BARIS INI <---
+                else if (s.jenis === 'ESAI') {
+                    if (document.getElementById('edit-min-kata-esai')) {
+                        document.getElementById('edit-min-kata-esai').value = s.minKata || 0;
+                    }
                 }
             }, 100);
         }
@@ -5596,6 +6259,11 @@
                     return; 
                 }
                 newData.kiri = kl; newData.kanan = kn; newData.kunciJodoh = kuncis;
+            }
+            // ---> TAMBAHKAN 4 BARIS INI <---
+            else if (jenis === 'ESAI') {
+                const minKataVal = parseInt(document.getElementById('edit-min-kata-esai')?.value) || 0;
+                newData.minKata = minKataVal < 0 ? 0 : minKataVal;
             }
 
             try {
